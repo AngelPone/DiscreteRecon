@@ -2,17 +2,22 @@
 % Please edit documentation in R/dhts.R
 \name{dhts}
 \alias{dhts}
+\alias{is.dhts}
 \title{discrete hierarchical time series constructor.}
 \usage{
-dhts(bts, s_mat, domain)
+dhts(bts, s_mat, domain_bts)
+
+is.dhts(dhts)
 }
 \arguments{
 \item{bts}{bottom-level time series, T * m}
 
 \item{s_mat}{the summing matrix}
 
-\item{domain}{the domain of bottom-level series, 2 * m matrix, 
-Each column corresponds to each series, and the first row corresponds to
+\item{dhts}{object}
+
+\item{domain}{the domain of bottom-level series, 2 * m matrix.
+Each column corresponds to a series, and the first row corresponds to
 the minimums, and the second row corresponds the maximums.}
 }
 \value{
@@ -23,7 +28,7 @@ Create a 'dhts' object
 }
 \examples{
 # create a 3-nodes discrete hts.
-bts <- matrix(sample(0:1, 100, replace=TRUE)
+bts <- matrix(sample(0:1, 100, replace=TRUE), ncol=2)
 s_mat <- matrix(c(1, 1, 0, 1, 0, 1), 3)
 domain <- matrix(c(1, 0, 1, 0), 2)
 dhts(bts, s_mat, domain)

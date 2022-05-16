@@ -3,3 +3,6 @@ Type: Package
 Title: Probabilistic forecast reconciliation for discrete time series
 Version: 0.0.1
 RoxygenNote: 7.1.2
+Imports:
+  Matrix
+Encoding: UTF-8
