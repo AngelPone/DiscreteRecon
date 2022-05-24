@@ -71,15 +71,25 @@ cal_costeMatrix <- function(incoherent_domain, coherent_domain) {
 #' order of summing matrix and probabilities are arranged in order of domain.
 marginal2Joint <- function(x){
   time_window <- dim(x[[1]])[1]
-  tprobf <- lapply(x, function(f){ f[1,] })
-  basef <- apply(expand.grid(tprobf), 1, prod)
-  for (i in 2:time_window){
-    tprobf <- lapply(x, function(f){ f[i,] })
-    basef <- rbind(basef, apply(expand.grid(tprobf), 1, prod))
+  domains <- expand.grid(lapply(x, function(x){0:(dim(x)[2] - 1)}))
+  res <- NULL
+  for (j in 1:dim(domains)[1]){
+    tmp <- 1
+    for (i in 1:length(x)){
+      indx <- domains[j, i]
+      tmp <- tmp * x[[i]][,indx+1]
+    }
+    res <- cbind(res, tmp)
   }
-  rownames(basef) <- NULL
-  colnames(basef) <- NULL
-  basef
+  # tprobf <- lapply(x, function(f){ f[1,] })
+  # basef <- apply(expand.grid(tprobf), 1, prod)
+  # for (i in 2:time_window){
+  #   tprobf <- lapply(x, function(f){ f[i,] })
+  #   basef <- rbind(basef, apply(expand.grid(tprobf), 1, prod))
+  # }
+  rownames(res) <- NULL
+  colnames(res) <- NULL
+  res
 }
 
 marginal2Sum <- function(x, domain){

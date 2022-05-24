@@ -74,7 +74,7 @@ allreconcile.train <- function(basef,
   vec_c <- matrix(t(costs), nrow = 1)
   if (optimized){
     indicators <- getVIndexs(costs)
-    Dmat <- 2 * construct_Q(r, basef, indicators)/time_window
+    Dmat <- 2 * construct_Q(r, basef, indicators)
     D <- construct_D(basef, indicators)
     E <- construct_E(costs, indicators)
     n_eq <- dim(E)[1]
@@ -86,9 +86,9 @@ allreconcile.train <- function(basef,
     bvec <- c(rep(1, n_eq),
               rep(0, n_var),
               rep(-1, n_var))
-    dvec <- t(as.matrix(2/time_window * D))
+    dvec <- t(as.matrix(2 * D))
   } else {
-    Dmat <- 2 * construct_Q(r, basef)/time_window  
+    Dmat <- 2 * construct_Q(r, basef)  
     D <- 0
     for (i in 1:time_window) {
       D <- D + real_dummy[i,,drop=FALSE] %*% Matrix::bdiag(replicate(r, basef[i,,drop=FALSE], simplify = FALSE))
@@ -106,19 +106,51 @@ allreconcile.train <- function(basef,
     b3 <- rep(-1, r * q)
     Amat <- t(rbind(A1, A2, A3))
     bvec <- c(b1, b2, b3)
-    dvec <- t(- lambda * matrix(costs, nrow = 1) + as.matrix(2/time_window * D))
-    neq <- q
+    dvec <- t(- lambda * matrix(costs, nrow = 1) + as.matrix(2/time_window * D)) * time_window
+    n_eq <- q
   }
+
+  solution <- quadprog::solve.QP(Dmat, dvec, Amat, bvec, meq = n_eq, factorized = FALSE)$solution
   # check the result in the optimization function equals to the result of matrix form.
-  # total_opt = -t(dvec) %*% vec_A + 1/2 * t(vec_A) %*% Dmat%*% vec_A + t(vec_Z) %*% vec_Z/time_window
-  
-  solution <- quadprog::solve.QP(Dmat, dvec, Amat, bvec, meq = n_eq)$solution
+  test.equalres <- function(){
+    getVIndexs2 <- function(distance){
+      Avec <- matrix(0, r, q)
+      indicators <- list()
+      for (i in 1:q){
+        Avec[which(distance[,i]==min(distance[,i])), i] = 1
+      }
+      for (i in 1:r){
+        indicators[[i]] <- which(Avec[i, ] == 1)
+      }
+      indicators
+    }
+    indicators2 <- getVIndexs2(costs)
+    Dmat2 <-2 * construct_Q(r, basef, indicators2)
+    dvec2 <- t(as.matrix(2 * construct_D(basef, indicators2)))
+    tmp_sol <- solution + 2
+    Amat <- construct_res(costs, tmp_sol, indicators)
+    vec_A <- matrix(t(Amat), nrow=1)[1,]
+    vec_A <- vec_A[vec_A > 0]
+    vec_A[vec_A > 1.5] = vec_A[vec_A>1.5] - 2
+    total_opt = (-t(dvec2) %*% vec_A + 1/2 * t(vec_A) %*% Dmat2 %*% vec_A + time_window)/time_window
+    Ahat <- construct_res(costs, solution, indicators)
+    res <- sum((t(Ahat %*% t(basef)) - real_dummy)^2)/time_window
+    cat("Optimized matrix form:", as.numeric(total_opt), "\n")
+    cat("scalar form:", as.numeric(res), "\n")
+  }
+  # test.equalres()
   solution[solution<1e-10] = 0
   if (optimized){
     Ahat <- construct_res(costs, solution, indicators)
   }else{
     Ahat <- t(matrix(solution, q, r))
   }
+  # test if best
+  Ahat2 <- construct_res(costs, rnorm(length(solution)), indicators)
+  Ahat2 <- apply(Ahat2, 2, function(x){abs(x)/sum(abs(x))})
+  sc1 <- brier_score(t(Ahat2 %*% t(basef)), real)
+  sc2 <- brier_score(t(Ahat %*% t(basef)), real)
+  cat(length(solution), "," , sc1, ",", sc2, ",", sep = "")
   structure(apply(Ahat, 2, function(x){x/sum(x)}), class="rec_mat")
 }
 
@@ -171,6 +203,7 @@ stepwise_reconcile.train <- function(basef, real,
     Ahat <- list(A=allreconcile.train(basef_i, real_i, lambda=lambda, optimized = optimized),
                  leftdomain=hierarchy_domain[,1],
                  rightdomain=domain[,(i+1):m])
+    cat(brier_score(marginal2Joint(list(bf_left, bf_right)), real_i), '\n', sep = "")
     As[[i]] <- Ahat
     bf_total <- Joint2Marginal(t(Ahat$A %*% t(basef_i)), real_i$domain$coherent_domain, 3)
   }
@@ -237,6 +270,9 @@ reconcile.rec_mat <- function(x, basef){
 # r: cardinality of coherent domain
 # pi_hat: T*q base probabilistic forecasts
 construct_Q <- function(r, basef, indicators=NULL) {
+  if (rankMatrix(basef) != dim(basef)[2]){
+    basef <- addProbJitter(basef)
+  }
   Q <- t(basef) %*% basef
   if(is.null(indicators)){
     Matrix::bdiag(replicate(r, Q, simplify = FALSE))
@@ -326,5 +362,11 @@ coherentadj <- function(x, target, domain, which){
       rbind(new_x, .)
   }
   new_x
+}
+
+
+addProbJitter <- function(x){
+  add_x <- matrix(runif(length(x), -min(abs(x))/100, min(abs(x))/100), NROW(x), NCOL(x))
+  t(apply((x + add_x), 1, function(x){abs(x)/sum(abs(x))}))
 }
 
