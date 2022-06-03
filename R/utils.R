@@ -1,5 +1,6 @@
 #' function to transform observed bottom-level series into dummy series.
 #' 
+#' @import Matrix
 #' @param x dhts object
 cons_realDummy <- function(x) {
   if (!is.dhts(x)) stop("Argument x should be a dhts object.")
@@ -61,12 +62,9 @@ cal_costeMatrix <- function(incoherent_domain, coherent_domain) {
   distance
 }
 
-#' generic function to transform base marginal probabilistic forecasts into joint distributions.
-#' marginal2Joint <- function(x, ...){
-#'   UseMethod('marignal2Joint', x)
-#' }
 
 #' method for incoherent probabilistic forecasts
+#' @export 
 #' @note This method assume the list containing base forecasts is ordered by the 
 #' order of summing matrix and probabilities are arranged in order of domain.
 marginal2Joint <- function(x){

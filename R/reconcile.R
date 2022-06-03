@@ -221,6 +221,7 @@ reconcile <- function(x, ...){
 
 #' function to warn irregular object
 #' @param x output of reconcile.train
+#' @export
 reconcile.default <- function(x, ...){
   warning(paste("reconcile does not know how to handle object of class ", 
                 class(x)))
@@ -230,6 +231,7 @@ reconcile.default <- function(x, ...){
 #' 
 #' @param x sw_res object
 #' @param basef listing containing base probabilistic forecasts for each series
+#' @export
 reconcile.sw_res <- function(x, basef){
   n <- length(x)
   bf_total <- NULL
@@ -252,7 +254,7 @@ reconcile.sw_res <- function(x, basef){
     reconciledi <- t(x[[i]]$A %*% t(marginal2Joint(list(bf_total, bf_left, bf_right))))
     ans[[i]] <- list(dist=reconciledi, domain=subtreedomain)
   }
-  Step2Joint(ans)
+  Step2Joint(ans)$dist
 }
 
 
@@ -260,6 +262,7 @@ reconcile.sw_res <- function(x, basef){
 #' 
 #' @param x rec_mat object
 #' @param basef listing containing base probabilistic forecasts for each series
+#' @export
 reconcile.rec_mat <- function(x, basef){
   
 }

@@ -2,19 +2,11 @@
 % Please edit documentation in R/utils.R
 \name{marginal2Joint}
 \alias{marginal2Joint}
-\title{generic function to transform base marginal probabilistic forecasts into joint distributions.
-marginal2Joint <- function(x, ...){
-  UseMethod('marignal2Joint', x)
-}
-method for incoherent probabilistic forecasts}
+\title{method for incoherent probabilistic forecasts}
 \usage{
 marginal2Joint(x)
 }
 \description{
-generic function to transform base marginal probabilistic forecasts into joint distributions.
-marginal2Joint <- function(x, ...){
-  UseMethod('marignal2Joint', x)
-}
 method for incoherent probabilistic forecasts
 }
 \note{
