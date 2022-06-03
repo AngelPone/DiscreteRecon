@@ -6,6 +6,9 @@
 \usage{
 \method{reconcile}{default}(x, ...)
 }
+\arguments{
+\item{x}{output of reconcile.train}
+}
 \description{
 function to warn irregular object
 }

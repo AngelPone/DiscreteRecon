@@ -120,7 +120,7 @@ marginal2Sum <- function(x, domain){
 #' @param domain domain of hierarchy
 #' @param which integer indicating which dimension (which column of domain), if
 #' NULL, return marginal distribution of all series.
-#' @return 
+#' @return marginal distribution
 Joint2Marginal <- function(x, domain, which=NULL){
   time_window <- dim(x)[1]
   marginal <- NULL

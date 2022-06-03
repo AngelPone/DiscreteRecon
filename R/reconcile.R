@@ -163,7 +163,8 @@ allreconcile.train <- function(basef,
 #' @param optimized boolean indicating if optimization 
 #' @param step_wise boolean indicating if reconciliation step wisely.
 #' @return sw_res object or rec_mat object
-reconcile.train <- function(basef, real, 
+#' @export
+reconcile_train <- function(basef, real, 
                             lambda=1, optimized=TRUE, step_wise=TRUE){
   if (!step_wise) {
     basef <- marginal2Joint(basef)
@@ -219,8 +220,7 @@ reconcile <- function(x, ...){
 }
 
 #' function to warn irregular object
-#' @param 
-#' @export
+#' @param x output of reconcile.train
 reconcile.default <- function(x, ...){
   warning(paste("reconcile does not know how to handle object of class ", 
                 class(x)))
@@ -230,7 +230,6 @@ reconcile.default <- function(x, ...){
 #' 
 #' @param x sw_res object
 #' @param basef listing containing base probabilistic forecasts for each series
-#' @export
 reconcile.sw_res <- function(x, basef){
   n <- length(x)
   bf_total <- NULL
@@ -261,7 +260,6 @@ reconcile.sw_res <- function(x, basef){
 #' 
 #' @param x rec_mat object
 #' @param basef listing containing base probabilistic forecasts for each series
-#' @export
 reconcile.rec_mat <- function(x, basef){
   
 }
