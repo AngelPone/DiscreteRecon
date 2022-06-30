@@ -2,6 +2,7 @@
 #' 
 #' @import Matrix
 #' @param x dhts object
+#' @return dummy matrix
 cons_realDummy <- function(x) {
   if (!is.dhts(x)) stop("Argument x should be a dhts object.")
   coherent_domain <- x$domain$coherent_domain
@@ -17,9 +18,14 @@ cons_realDummy <- function(x) {
 }
 
 #' cost of moving probabilities
-#' 
+#‘
 #' function to calculate distance between coherent point
+#' @param incoherent_domain
+#' @param coherent_domain
+#' @return distance matrix
 cal_costeMatrix <- function(incoherent_domain, coherent_domain) {
+  stopifnot(is.coherent_domain(coherent_domain),
+            is.incoherent_domain(incoherent_domain))
   r = dim(coherent_domain)[1]
   q = dim(incoherent_domain)[1]
   distance = matrix(NA, nrow = r, ncol = q)
@@ -32,16 +38,19 @@ cal_costeMatrix <- function(incoherent_domain, coherent_domain) {
 }
 
 
-#' method for incoherent probabilistic forecasts
+#' convert marginal distributions into joint distribution assuming independence
+#' 
+#' @param x list of distributions of all series
+#' @param domain domain of hierarchy, if coherent, only bottom series are used (bottom-up approach).
+#' @return joint distribution matrix
 #' @export 
-#' @note This method assume the list containing base forecasts is ordered by the 
-#' order of summing matrix and probabilities are arranged in order of domain.
 marginal2Joint <- function(x, domain){
-  domain <- ifelse('coherent_domain' %in% class(domain), 
-                   domain[,2:dim(domain)[2]],
-                   domain)
-  x <- ifelse('coherent_domain' %in% class(domain), 
-               x[,2:dim(domain)], x)
+  cls <- "jdist-ind"
+  if (is.coherent_domain(domain)){
+    domain <- domain[,2:dim(domain)[2]]
+    cls <- "jdist-bu"
+  }
+  x <- ifelse(is.coherent_domain(domain), x[,2:dim(domain)], x)
   time_window <- dim(x[[1]])[1]
   res <- NULL
   for (j in 1:dim(domain)[1]){
@@ -52,15 +61,9 @@ marginal2Joint <- function(x, domain){
     }
     res <- cbind(res, tmp)
   }
-  # tprobf <- lapply(x, function(f){ f[1,] })
-  # basef <- apply(expand.grid(tprobf), 1, prod)
-  # for (i in 2:time_window){
-  #   tprobf <- lapply(x, function(f){ f[i,] })
-  #   basef <- rbind(basef, apply(expand.grid(tprobf), 1, prod))
-  # }
   rownames(res) <- NULL
   colnames(res) <- NULL
-  res
+  structure(res, class=cls)
 }
 
 marginal2Sum <- function(x, domain){
@@ -109,6 +112,8 @@ Joint2Marginal <- function(x, domain, which=NULL){
     return(marginal)
   }
 }
+
+
 
 #' function to construct summing matrix of a simple two-level hierarchy
 #' 

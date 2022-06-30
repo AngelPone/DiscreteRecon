@@ -9,7 +9,7 @@ Joint2Marginal(x, domain, which = NULL)
 \arguments{
 \item{x}{joint distribution}
 
-\item{domain}{domain of hierarchy}
+\item{domain}{domain of hierarchy, incoherent or cohernet}
 
 \item{which}{integer indicating which dimension (which column of domain), if
 NULL, return marginal distribution of all series.}

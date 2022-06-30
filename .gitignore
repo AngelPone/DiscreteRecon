@@ -4,3 +4,5 @@
 *.Rproj.*
 .DS_Store
 .Rproj.user
+
+tests/_snaps

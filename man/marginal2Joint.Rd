@@ -4,7 +4,7 @@
 \alias{marginal2Joint}
 \title{method for incoherent probabilistic forecasts}
 \usage{
-marginal2Joint(x)
+marginal2Joint(x, domain)
 }
 \description{
 method for incoherent probabilistic forecasts

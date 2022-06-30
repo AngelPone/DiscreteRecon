@@ -90,6 +90,15 @@ cons_domain <- function(domain_bts, s_mat, coherent = TRUE, node_names=NULL) {
   return(allDomain)
 }
 
+#' @export
+is.coherent_domain <- function(x){
+  "coherent_domain" %in% class(x)
+}
+
+#' @export
+is.incoherent_domain <- function(x){
+  "incoherent_domain" %in% class(x)
+}
 
 
 
