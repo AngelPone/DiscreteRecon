@@ -285,8 +285,56 @@ construct_Q <- function(r, basef, indicators=NULL) {
   }
 }
 
+#' function to train the naive top-down method based on concurrence.
+#' 
+#' @param real dhts object
+#' @return topdown object 
+#' @export
+#' @import dplyr
+#' @import Matrix
+topdown.train <- function(real){
+  stopifnot(is(real, "dhts"))
+  coherent_domain <- data.frame(real$domain$coherent_domain)
+  q <- dim(coherent_domain)[1]
+  a <- dim(coherent_domain)[2]
+  y <- real$bts
+  concurrence <- vector("numeric", q)
+  for (i in 1:dim(y)[1]){
+    for (j in 1:q){
+      if (all(y[i,] == coherent_domain[j, 2:a])){
+        concurrence[j] = concurrence[j] + 1
+        break
+      }
+    }
+  }
+  # tmp <- data.frame(y) %>% group_by(across()) %>% count()
+  # for (i in 1:q){
+  #   for (j in 1:q){
+  #     if (all(tmp[i, 1:(a-1)] == coherent_domain[j, 2:a])){
+  #       concurrence[i] <- tmp$n[i]
+  #     }
+  #   }
+  # }
+  data.frame(total=coherent_domain$X1, concurrence) %>%
+    group_by(total) %>%
+    mutate(freq = sum(concurrence), prob = concurrence / freq) %>%
+    pull(prob) %>%
+    split(coherent_domain$X1) %>%
+    bdiag() %>% as.matrix() %>%
+    structure(class = "topdown")
+}
 
-#' function stepwise update the joint distribution and joint domain.
+#' topdown reconcilation function
+#' 
+#' @param x topdown object
+#' @param basef base forecasts of total level
+#' @export
+reconcile.topdown <- function(x, basef){
+  total_f <- basef[[1]]
+  t(x %*% t(total_f))
+}
+
+#' function to stepwise update the joint distribution and joint domain.
 #'
 #' @param ans list containing joint distribution of all sub trees. 
 Step2Joint <- function(ans){

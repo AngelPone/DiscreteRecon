@@ -2,7 +2,7 @@
 % Please edit documentation in R/reconcile.R
 \name{Step2Joint}
 \alias{Step2Joint}
-\title{function stepwise update the joint distribution and joint domain.}
+\title{function to stepwise update the joint distribution and joint domain.}
 \usage{
 Step2Joint(ans)
 }
@@ -10,5 +10,5 @@ Step2Joint(ans)
 \item{ans}{list containing joint distribution of all sub trees.}
 }
 \description{
-function stepwise update the joint distribution and joint domain.
+function to stepwise update the joint distribution and joint domain.
 }
