@@ -19,6 +19,10 @@ dhts <- function(bts, s_mat, domain_bts){
   stopifnot(dim(bts)[2] == dim(s_mat)[2],
             dim(domain_bts)[2] == dim(s_mat)[2],
             dim(domain_bts)[1] == 2)
+  for (i in 1:dim(s_mat)[2]){
+    stopifnot(bts[,i] >= domain_bts[1,i],
+              bts[,i] <= domain_bts[2,i])
+  }
   
   if (!is.ts(bts)){
     bts <- as.ts(bts)
@@ -48,12 +52,42 @@ aggdhts <- function(x){
   t(x$s_mat %*% t(x$bts))
 }
 
+
 #' A function to check if a object is \code{dhts}.
 #' @rdname dhts-class
 #' @param dhts object
 #' @export
 is.dhts <- function(dhts){
   is.element("dhts", class(dhts))
+}
+
+#' construct domain
+#' 
+#' Method for constructing coherent domain vector given domain matrix of all 
+#' bottom-level series and the summing matrix.
+#' @param domain_bts domain matrix used in creating dhts object.
+#' @param s_mat summing matrix
+#' @param coherent logical indicating if produced domain is coherent or not.
+#' @return domain object
+cons_domain <- function(domain_bts, s_mat, coherent = TRUE, node_names=NULL) {
+  if (coherent){
+    # df of coherent domain
+    df <- expand.grid(
+      # domain of each variable
+      apply(domain_bts, 2, function(x){x[1]:x[2]}, simplify = FALSE)
+    )
+    allDomain <- t(s_mat %*% t(df))
+  } else {
+    df <- t(s_mat %*% t(domain_bts))
+    allDomain <- expand.grid(
+      # domain of each variable
+      apply(df, 2, function(x){x[1]:x[2]}, simplify = FALSE)
+    )
+  }
+  allDomain <- as.matrix(allDomain)
+  colnames(allDomain) <- node_names
+  class(allDomain) <- ifelse(coherent, "coherent_domain", "incoherent_domain")
+  return(allDomain)
 }
 
 

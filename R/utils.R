@@ -16,37 +16,6 @@ cons_realDummy <- function(x) {
   dummy_mat
 }
 
-#' construct domain
-#' 
-#' Method for constructing coherent domain vector given domain matrix of all 
-#' bottom-level series and the summing matrix.
-#' @param domain_bts domain matrix used in creating dhts object.
-#' @param s_mat summing matrix
-#' @param coherent logical indicating if produced domain is coherent or not.
-#' @return domain object
-cons_domain <- function(domain_bts, s_mat, coherent = TRUE, node_names=NULL) {
-  if (coherent){
-    # df of coherent domain
-    df <- expand.grid(
-      # domain of each variable
-      apply(domain_bts, 2, function(x){x[1]:x[2]}, simplify = FALSE)
-    )
-    allDomain <- t(s_mat %*% t(df))
-  } else {
-    df <- t(s_mat %*% t(domain_bts))
-    allDomain <- expand.grid(
-      # domain of each variable
-      apply(df, 2, function(x){x[1]:x[2]}, simplify = FALSE)
-    )
-  }
-  if (is.null(node_names)){
-    node_names <- 1:dim(allDomain)[2]
-  }
-  colnames(allDomain) <- node_names
-  return(allDomain)
-}
-
-
 #' cost of moving probabilities
 #' 
 #' function to calculate distance between coherent point
@@ -67,14 +36,18 @@ cal_costeMatrix <- function(incoherent_domain, coherent_domain) {
 #' @export 
 #' @note This method assume the list containing base forecasts is ordered by the 
 #' order of summing matrix and probabilities are arranged in order of domain.
-marginal2Joint <- function(x){
+marginal2Joint <- function(x, domain){
+  domain <- ifelse('coherent_domain' %in% class(domain), 
+                   domain[,2:dim(domain)[2]],
+                   domain)
+  x <- ifelse('coherent_domain' %in% class(domain), 
+               x[,2:dim(domain)], x)
   time_window <- dim(x[[1]])[1]
-  domains <- expand.grid(lapply(x, function(x){0:(dim(x)[2] - 1)}))
   res <- NULL
-  for (j in 1:dim(domains)[1]){
+  for (j in 1:dim(domain)[1]){
     tmp <- 1
     for (i in 1:length(x)){
-      indx <- domains[j, i]
+      indx <- domain[j, i]
       tmp <- tmp * x[[i]][,indx+1]
     }
     res <- cbind(res, tmp)
@@ -115,7 +88,7 @@ marginal2Sum <- function(x, domain){
 #' function to convert Joint distribution to marginal Distribtion
 #' 
 #' @param x joint distribution
-#' @param domain domain of hierarchy
+#' @param domain domain of hierarchy, incoherent or cohernet
 #' @param which integer indicating which dimension (which column of domain), if
 #' NULL, return marginal distribution of all series.
 #' @return marginal distribution
