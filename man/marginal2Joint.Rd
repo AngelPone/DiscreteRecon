@@ -2,14 +2,18 @@
 % Please edit documentation in R/utils.R
 \name{marginal2Joint}
 \alias{marginal2Joint}
-\title{method for incoherent probabilistic forecasts}
+\title{convert marginal distributions into joint distribution assuming independence}
 \usage{
 marginal2Joint(x, domain)
 }
-\description{
-method for incoherent probabilistic forecasts
+\arguments{
+\item{x}{list of distributions of all series}
+
+\item{domain}{domain of hierarchy, if coherent, only bottom series are used (bottom-up approach).}
 }
-\note{
-This method assume the list containing base forecasts is ordered by the 
-order of summing matrix and probabilities are arranged in order of domain.
+\value{
+joint distribution matrix
+}
+\description{
+convert marginal distributions into joint distribution assuming independence
 }

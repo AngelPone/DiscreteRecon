@@ -1,8 +1,14 @@
 Package: DiscreteRecon
 Type: Package
 Title: Probabilistic forecast reconciliation for discrete time series
+Authors@R:
+    c(person("Bohan", "Zhang", email="zhangbohan@buaa.edu.cn", role = c("aut", "cre", "cph")))
 Version: 0.0.1
+License: `use_gpl3_license()`
 RoxygenNote: 7.2.0
+Description: Methods and tools for reconcling probabilistic forecasts for discrete
+             hierarchical time series.
 Imports:
-  Matrix
+  Matrix,
+  dplyr
 Encoding: UTF-8

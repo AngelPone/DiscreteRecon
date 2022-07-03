@@ -2,14 +2,14 @@
 % Please edit documentation in R/utils.R
 \name{Joint2Marginal}
 \alias{Joint2Marginal}
-\title{function to convert Joint distribution to marginal Distribtion}
+\title{function to convert Joint distribution to marginal Distribution}
 \usage{
 Joint2Marginal(x, domain, which = NULL)
 }
 \arguments{
 \item{x}{joint distribution}
 
-\item{domain}{domain of hierarchy, incoherent or cohernet}
+\item{domain}{domain of hierarchy, incoherent or coherent}
 
 \item{which}{integer indicating which dimension (which column of domain), if
 NULL, return marginal distribution of all series.}
@@ -18,5 +18,5 @@ NULL, return marginal distribution of all series.}
 marginal distribution
 }
 \description{
-function to convert Joint distribution to marginal Distribtion
+function to convert Joint distribution to marginal Distribution
 }

@@ -5,7 +5,7 @@
 \alias{is.dhts}
 \title{discrete hierarchical time series constructor.}
 \usage{
-dhts(bts, s_mat, domain_bts)
+dhts(bts, s_mat, domain_bts, node_names = NULL)
 
 is.dhts(dhts)
 }

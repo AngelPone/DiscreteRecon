@@ -2,10 +2,20 @@
 % Please edit documentation in R/utils.R
 \name{cal_costeMatrix}
 \alias{cal_costeMatrix}
-\title{cost of moving probabilities}
+\title{cost of moving probabilities
+function to calculate distance between coherent point}
 \usage{
 cal_costeMatrix(incoherent_domain, coherent_domain)
 }
+\arguments{
+\item{incoherent_domain}{coherent domain}
+
+\item{coherent_domain}{incoherent domain}
+}
+\value{
+distance matrix
+}
 \description{
+cost of moving probabilities
 function to calculate distance between coherent point
 }

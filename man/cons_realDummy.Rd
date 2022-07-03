@@ -9,6 +9,9 @@ cons_realDummy(x)
 \arguments{
 \item{x}{dhts object}
 }
+\value{
+dummy matrix
+}
 \description{
 function to transform observed bottom-level series into dummy series.
 }
