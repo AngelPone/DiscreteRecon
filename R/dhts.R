@@ -7,6 +7,7 @@
 #' the minimums, and the second row corresponds the maximums.
 #' @param s_mat the summing matrix
 #' @param bts bottom-level time series, T * m
+#' @tag multiple-levels
 #' @return a dhts object
 #' @examples 
 #' # create a 3-nodes discrete hts.
@@ -15,7 +16,7 @@
 #' domain <- matrix(c(1, 0, 1, 0), 2)
 #' dhts(bts, s_mat, domain)
 #' @export
-dhts <- function(bts, s_mat, domain_bts){
+dhts <- function(bts, s_mat, domain_bts, node_names=NULL){
   stopifnot(dim(bts)[2] == dim(s_mat)[2],
             dim(domain_bts)[2] == dim(s_mat)[2],
             dim(domain_bts)[1] == 2)
@@ -30,8 +31,8 @@ dhts <- function(bts, s_mat, domain_bts){
   
   domain <- list(
     domain_bts = domain_bts,
-    incoherent_domain = cons_domain(domain_bts, s_mat, FALSE),
-    coherent_domain = cons_domain(domain_bts, s_mat))
+    incoherent_domain = cons_domain(domain_bts, s_mat, FALSE, node_names = node_names),
+    coherent_domain = cons_domain(domain_bts, s_mat, node_names = node_names))
   structure(
     list(bts = bts, 
          domain = domain, 
@@ -68,6 +69,7 @@ is.dhts <- function(dhts){
 #' @param domain_bts domain matrix used in creating dhts object.
 #' @param s_mat summing matrix
 #' @param coherent logical indicating if produced domain is coherent or not.
+#' @tag multiple-levels
 #' @return domain object
 cons_domain <- function(domain_bts, s_mat, coherent = TRUE, node_names=NULL) {
   if (coherent){
@@ -83,6 +85,9 @@ cons_domain <- function(domain_bts, s_mat, coherent = TRUE, node_names=NULL) {
       # domain of each variable
       apply(df, 2, function(x){x[1]:x[2]}, simplify = FALSE)
     )
+  }
+  if (is.null(node_names)){
+    node_names <- paste0('s', 1:dim(s_mat)[1])
   }
   allDomain <- as.matrix(allDomain)
   colnames(allDomain) <- node_names
