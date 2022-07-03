@@ -83,5 +83,7 @@ test_that("multiple levels example", {
   expect_equal(colnames(t2), paste0("s", 1:10))
   expect_equal(max(t1), as.numeric(rowSums(domain)[2]))
   expect_equal(min(t1), as.numeric(min(domain)))
+  expect_equal(attr(t1, 'm'), 7)
+  expect_equal(attr(t2, 'm'), 7)
 })
 

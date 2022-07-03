@@ -91,8 +91,9 @@ cons_domain <- function(domain_bts, s_mat, coherent = TRUE, node_names=NULL) {
   }
   allDomain <- as.matrix(allDomain)
   colnames(allDomain) <- node_names
-  class(allDomain) <- ifelse(coherent, "coherent_domain", "incoherent_domain")
-  return(allDomain)
+  class(allDomain) <- 
+  structure(allDomain, class=ifelse(coherent, "coherent_domain", "incoherent_domain"),
+            m = dim(s_mat)[2])
 }
 
 #' @export
