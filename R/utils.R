@@ -2,6 +2,7 @@
 #' 
 #' @import Matrix
 #' @param x dhts object
+#' @tag multiple-levels
 #' @return dummy matrix
 cons_realDummy <- function(x) {
   if (!is.dhts(x)) stop("Argument x should be a dhts object.")
@@ -22,6 +23,7 @@ cons_realDummy <- function(x) {
 #' function to calculate distance between coherent point
 #' @param incoherent_domain
 #' @param coherent_domain
+#' @tag multiple-levels
 #' @return distance matrix
 cal_costeMatrix <- function(incoherent_domain, coherent_domain) {
   stopifnot(is.coherent_domain(coherent_domain),
@@ -42,15 +44,18 @@ cal_costeMatrix <- function(incoherent_domain, coherent_domain) {
 #' 
 #' @param x list of distributions of all series
 #' @param domain domain of hierarchy, if coherent, only bottom series are used (bottom-up approach).
+#' @tag multiple-levels
 #' @return joint distribution matrix
 #' @export 
 marginal2Joint <- function(x, domain){
   cls <- "jdist-ind"
+  m <- attr(domain, 'm')
+  n <- dim(domain)[2]
   if (is.coherent_domain(domain)){
-    domain <- domain[,2:dim(domain)[2]]
+    x <- x[(n-m+1):n]
+    domain <- domain[, (n-m+1):n]
     cls <- "jdist-bu"
   }
-  x <- ifelse(is.coherent_domain(domain), x[,2:dim(domain)], x)
   time_window <- dim(x[[1]])[1]
   res <- NULL
   for (j in 1:dim(domain)[1]){
@@ -66,59 +71,84 @@ marginal2Joint <- function(x, domain){
   structure(res, class=cls)
 }
 
-marginal2Sum <- function(x, domain){
-  if (length(x) == 1){
-    return(x[[1]])
-  }
+#' function to compute distribution of sum of bottom series assuming independence
+#' 
+#' @param x list of distributions of some series
+#' @param domain should be coherent domain
+#' @param which indicating which upper nodes, default NULL means all upper series.
+#' @return distribution of upper series.
+#' @tag 
+marginal2Sum <- function(x, domain, which = NULL){
+  stopifnot(is.coherent_domain(domain))
   time_window <- dim(x[[1]])[1]
   
-  # expand the domain
-  domains <- expand.grid(data.frame(domain))
+  m <- attr(domain, 'm')
+  n <- dim(domain)[2]
   
-  tprobf <- lapply(x, function(f){ f[1,] })
-  basef <- apply(expand.grid(tprobf), 1, prod)
-  ans <- sapply(split(basef, apply(domains, 1, sum)), sum)
-  for (i in 2:time_window){
-    tprobf <- lapply(x, function(f){ f[i,] })
-    basef <- apply(expand.grid(tprobf), 1, prod)
-    ans <- rbind(ans, sapply(split(basef, apply(domains, 1, sum)), sum))
+  d <- domain[,(n-m+1):n]
+  
+  output <- list()
+  if (is.null(which)){
+    which <- 1:(n-m)
   }
-  rownames(ans) <- NULL
-  ans[,sort(colnames(ans))]
+  for (i in seq_along(which)){
+    ds <- unique(domain[,which[i]])
+    output[[i]] <- matrix(0, time_window, length(ds))
+    colnames(output[[i]]) <- ds
+    for (j in 1:length(domain[,which[i]])){
+      current_col <- as.character(domain[j, which[i]])
+      tmp <- 1
+      for (k in 1:m){
+        tmp = tmp * x[[n-m+k]][,as.character(d[j, k])]
+      }
+      output[[i]][, current_col] = output[[i]][, current_col] + tmp
+    }
+  }
+  if (length(output) == 1) return(output[[1]])
+  output
 }
 
 
-#' function to convert Joint distribution to marginal Distribtion
+#' function to convert Joint distribution to marginal Distribution
 #' 
 #' @param x joint distribution
-#' @param domain domain of hierarchy, incoherent or cohernet
+#' @param domain domain of hierarchy, incoherent or coherent
 #' @param which integer indicating which dimension (which column of domain), if
 #' NULL, return marginal distribution of all series.
+#' @tag multiple-levels
 #' @return marginal distribution
 Joint2Marginal <- function(x, domain, which=NULL){
+  n <- dim(domain)[2]
+  m <- attr(domain, "m")
   time_window <- dim(x)[1]
-  marginal <- NULL
-  if (is.null(which)){
-    res = list()
-    for (i in 1:dim(domain)[2]){
-      res[[i]] <- Joint2Marginal(x, domain, which = i)
-    }
-    return(res)
-  } else {
-    for (i in 1:time_window){
-      marginal <- rbind(marginal, 
-                        sapply(split(x[i,], domain[,which]), sum))
-    }
-    return(marginal)
+  if (!("jdist-bu" %in% class(x) | "jdist-rec" %in% class(x))){
+    stop("only bottom-up joint distritbution or reconciled distribution is supported!")
   }
+  
+  if (is.null(which)){
+    output <- list()
+    for (i in 1:n){
+      if ("jdist-bu" %in% class(x)){
+        if (i <= n-m){
+          output[[i]] <- NULL
+          next
+        }
+      }
+      output[[i]] <- Joint2Marginal(x, domain, i)
+    }
+  } else {
+    if ("jdist-bu" %in% class(x)){
+      if (which <= n-m) {
+        warning("can not obtain marginal distribution of upper levels given bottom up joint distribution")
+        return(NULL)
+      }
+    }
+    output <- NULL
+    for (i in 1:time_window){
+      output <- rbind(output, 
+                      sapply(split(x[i,], domain[,which]), sum))
+    }
+  }
+  output
 }
 
-
-
-#' function to construct summing matrix of a simple two-level hierarchy
-#' 
-#' @param m number of children nodes
-#' @return summing matrix
-twolevelhierarchy <- function(m){
-  rbind(rep(1, m), diag(rep(1, m)))
-}
