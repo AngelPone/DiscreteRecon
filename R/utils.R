@@ -21,8 +21,8 @@ cons_realDummy <- function(x) {
 #' cost of moving probabilities
 #‘
 #' function to calculate distance between coherent point
-#' @param incoherent_domain
-#' @param coherent_domain
+#' @param incoherent_domain coherent domain
+#' @param coherent_domain incoherent domain
 #' @tag multiple-levels
 #' @return distance matrix
 cal_costeMatrix <- function(incoherent_domain, coherent_domain) {
