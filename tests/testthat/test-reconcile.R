@@ -155,7 +155,11 @@ test_that("topdown reconciliation", {
   q <- length(unique(dts$domain$incoherent_domain[,'s1']))
   A <- topdown.train(dts)
   expect_equal(dim(A), c(r, q))
+  expect(all(!is.na(A)), "shoule be na")
   
-  recf <- reconcile(A, prepare_basef(dts))
+  basef <- prepare_basef(dts)
+  recf <- reconcile(A, basef)
   expect_is(recf, 'jdist-td')
+  expect_equal(Joint2Marginal(recf, dts$domain$coherent_domain, 1), basef[[1]])
 })
+

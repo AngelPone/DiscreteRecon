@@ -248,13 +248,19 @@ topdown.train <- function(real){
       }
     }
   }
-  data.frame(total=coherent_domain$s1, concurrence) %>%
+  tmp <- data.frame(total=coherent_domain$s1, concurrence) %>%
     group_by(total) %>%
-    mutate(freq = sum(concurrence), prob = concurrence / freq) %>%
-    pull(prob) %>%
-    split(coherent_domain$s1) %>%
-    bdiag() %>% as.matrix() %>%
-    structure(class = "topdown")
+    mutate(freq = sum(concurrence), prob = concurrence / freq, n = length(concurrence)) %>%
+    mutate(prob = ifelse(is.na(prob), 1/n, prob)) %>%
+    pull(prob)
+  ds <- sort(unique(coherent_domain[,'s1']))
+  A <- matrix(0, q, length(ds))
+  colnames(A) <- ds
+  for (i in 1:q){
+    A[i, as.character(coherent_domain[i, 's1'])] = tmp[i]
+  }
+  
+  structure(A, class = "topdown")
 }
 
 #' topdown reconcilation function

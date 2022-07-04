@@ -121,8 +121,8 @@ Joint2Marginal <- function(x, domain, which=NULL){
   n <- dim(domain)[2]
   m <- attr(domain, "m")
   time_window <- dim(x)[1]
-  if (!("jdist-bu" %in% class(x) | "jdist-rec" %in% class(x) | "jdist-ind" %in% class(x))){
-    stop("only bottom-up joint distritbution or reconciled distribution is supported!")
+  if (!is_jdist(x)){
+    stop("x shoule be one kind of joint distribution")
   }
   
   if (is.null(which)){
@@ -150,5 +150,13 @@ Joint2Marginal <- function(x, domain, which=NULL){
     }
   }
   output
+}
+
+is_jdist <- function(x){
+  startsWith(class(x), "jdist-")
+}
+
+is_coherentJdist <- function(x){
+  class(x) == "jdist-bu" | class(x) == "jdist-rec" | class(x) == "jdist-td"
 }
 
