@@ -1,76 +1,4 @@
-library(dplyr)
-
-prepare_test_data1 <- function(){
-  bts <- matrix(sample(0:1, 100, replace=TRUE), ncol=2)
-  domain <- matrix(c(0, 1, 0, 1), 2)
-  s_mat <- matrix(c(1, 1, 0, 1, 0, 1), 3)
-  dhts(bts, s_mat, domain)
-}
-
-prepare_test_data2 <- function(x){
-  upper <- rep(0, x)
-  domain <- rbind(upper, upper + sample(1:2, x, replace = TRUE))
-  s_mat <- twolevelhierarchy(x)
-  bts <- apply(domain, 2, function(x){
-    sample(x[1]:x[2], size=100, replace = TRUE)
-  })
-  dhts(bts, s_mat, domain)
-}
-
-prepare_test_data3 <- function(){
-  domain <- rbind(rep(0, 4), rep(1, 4))
-  s_mat <- rbind(c(1,1,1,1), c(1,1,0,0), c(0,0,1,1), diag(4))
-  bts <- apply(domain, 2, function(x){
-    sample(x[1]:x[2], size=100, replace = TRUE)
-  })
-  dhts(bts, s_mat, domain)
-}
-
-prepare_basef <- function(dhts){
-  dsupper <- (dhts$s_mat %*% t(dhts$domain$domain_bts))[,2]
-  dslower <- (dhts$s_mat %*% t(dhts$domain$domain_bts))[,1]
-  ds <- dsupper - dslower + 1
-  probf <- 1:length(ds) %>%
-    lapply(function(x){
-      a <- matrix(rnorm(100*ds[x]), 100) %>% abs() %>% 
-        apply(1, function(x){x/sum(x)}) %>% t()
-      colnames(a) <- dslower[x] : dsupper[x]
-      a
-    })
-  probf
-}
-
-prepare_recdist <- function(dhts){
-  domain <- dhts$domain$coherent_domain
-  r <- dim(domain)[1]
-  structure(t(apply(matrix(rnorm(100*r), 100), 1, function(x){abs(x)/sum(abs(x))})),
-            class = "jdist-rec")
-}
-
-test_that("prepare base forecasts", {
-  dts <- prepare_test_data2(4)
-  dsupper <- (dts$s_mat %*% t(dts$domain$domain_bts))[,2]
-  dslower <- (dts$s_mat %*% t(dts$domain$domain_bts))[,1]
-  ds <- as.numeric(dsupper - dslower + 1)
-  basef <- prepare_basef(dts)
-  expect_equal(length(basef), 5)
-  for (i in 1:5){
-    expect_equal(dim(basef[[i]]), as.numeric(c(100, ds[i])))
-    expect_vector(rowSums(basef[[i]]), 1)
-    expect_equal(as.numeric(colnames(basef[[i]])), dslower[i]:dsupper[i])
-  }
-})
-
-test_that("prepare base forecasts for multiple levels", {
-  dts <- prepare_test_data3()
-  ds <- (dts$s_mat %*% t(dts$domain$domain_bts))[,2] - (dts$s_mat %*% t(dts$domain$domain_bts))[,1] + 1
-  basef <- prepare_basef(dts)
-  expect_equal(length(basef), 7)
-  for (i in 1:7){
-    expect_equal(dim(basef[[i]]), as.numeric(c(100, ds[i])))
-    expect_vector(rowSums(basef[[i]]), 1)
-  }
-})
+source('./utils.R')
 
 test_that("convert dhts to dummies", {
   sample_dhts <- prepare_test_data3()
@@ -110,12 +38,12 @@ test_that("Marginal distributions to Joint distributions", {
   for (i in 1:q){
     a <- sample_dhts$domain$incoherent_domain[i,] %>% as.numeric()
     b <- NULL
-    for (i in 1:length(basef)){
-      b <- cbind(b, basef[[i]][, a[i]+1])
+    for (j in 1:length(basef)){
+      b <- cbind(b, basef[[j]][, as.character(a[j])])
     }
-    expect_vector(
+    expect_equal(
       f1[,i],
-      apply(b, 2, prod)
+      apply(b, 1, prod)
     )
   }
   
@@ -123,12 +51,12 @@ test_that("Marginal distributions to Joint distributions", {
   for (i in 1:r){
     a <- sample_dhts$domain$coherent_domain[i,(n-m+1):n] %>% as.numeric()
     b <- NULL
-    for (i in 2:length(basef)){
-      b <- cbind(b, basef[[i]][, a[i]+1])
+    for (j in (n-m+1):(n)){
+      b <- cbind(b, basef[[j]][, as.character(a[j - (n-m)])])
     }
-    expect_vector(
+    expect_equal(
       f1[,i],
-      apply(b, 2, prod)
+      apply(b, 1, prod)
     )
   }
   expect_is(f1, "jdist-bu")
@@ -146,10 +74,10 @@ test_that("Marginal distributions to sum assuming independence", {
   expect_equal(dim(res[[3]]), c(100, 3))
   expect_equal(dim(res[[1]]), c(100, 5))
   
-  expect_vector(res[[1]][,"0"], apply(
+  expect_equal(res[[1]][,"0"], apply(
     do.call(cbind, lapply(basef[4:7], function(x){x[,"0"]})), 1, prod
   ))
-  expect_vector(res[[1]][,"4"], apply(
+  expect_equal(res[[1]][,"4"], apply(
     do.call(cbind, lapply(basef[4:7], function(x){x[,"1"]})), 1, prod
   ))
   
@@ -161,13 +89,13 @@ test_that("Marginal distributions to sum assuming independence", {
   
   res <- marginal2Sum(basef, domain, 3)
   expect_equal(dim(res), c(100, 3))
-  expect_vector(res[,"2"], apply(
+  expect_equal(res[,"2"], apply(
     do.call(cbind, lapply(basef[6:7], function(x){x[,"1"]})), 1, prod
   ))
-  expect_vector(res[,"0"], apply(
+  expect_equal(res[,"0"], apply(
     do.call(cbind, lapply(basef[6:7], function(x){x[,"0"]})), 1, prod
   ))
-  expect_vector(res[,"1"], 
+  expect_equal(res[,"1"], 
                 basef[[6]][,"0"] * basef[[7]][,"1"] + 
                 basef[[6]][,"1"] * basef[[7]][,"0"])
 })
@@ -195,6 +123,7 @@ test_that("Joint Distributions to Marginal distribution of specific dimension fo
 test_that("Joint Distributions to Marginal distribution of specific dimension for reconciled distribution", {
   dts <- prepare_test_data3()
   recdist <- prepare_recdist(dts)
+  domain <- dts$domain$coherent_domain
   mdist <- Joint2Marginal(recdist, domain)
   
   domain <- dts$domain$coherent_domain
@@ -203,7 +132,7 @@ test_that("Joint Distributions to Marginal distribution of specific dimension fo
     expect(!is.null(cdist), "shoule not be null")
     
     for (col in colnames(cdist)){
-      expect_vector(rowSums(recdist[,which(domain[,i] == col),drop=FALSE]),
+      expect_equal(rowSums(recdist[,which(domain[,i] == col),drop=FALSE]),
                     cdist[,col])
     }
   }

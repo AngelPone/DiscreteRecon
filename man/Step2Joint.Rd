@@ -9,6 +9,9 @@ Step2Joint(ans)
 \arguments{
 \item{ans}{list containing joint distribution of all sub trees.}
 }
+\value{
+reconciled joint distribution
+}
 \description{
 function to stepwise update the joint distribution and joint domain.
 }

@@ -7,16 +7,16 @@
 allreconcile.train(basef, real, lambda = 1, optimized = TRUE)
 }
 \arguments{
-\item{basef}{joint base probabilistic forecasts}
+\item{basef}{joint base probabilistic forecasts assuming independence}
 
 \item{real}{dhts object holding observed series}
 
 \item{lambda}{penalty terms of cost, default is 1.}
 
-\item{optimized}{}
+\item{optimized}{indicating whether optimized. i.e., only moving probabilities to nearest coherent points.}
 }
 \value{
-r*q transformation matrix
+r*q transformation matrix with class `rec_mat`
 }
 \description{
 Method for reconciling base probabilistic forecasts

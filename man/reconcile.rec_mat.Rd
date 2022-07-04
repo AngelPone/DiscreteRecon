@@ -10,6 +10,11 @@
 \item{x}{rec_mat object}
 
 \item{basef}{listing containing base probabilistic forecasts for each series}
+
+\item{domain}{domain of}
+}
+\value{
+reconciled
 }
 \description{
 regular reconciliation

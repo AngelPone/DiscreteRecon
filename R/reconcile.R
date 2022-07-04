@@ -1,81 +1,36 @@
 #' reconcile base probabilistic forecasts
 #' 
 #' Method for reconciling base probabilistic forecasts 
-#' @param basef joint base probabilistic forecasts
+#' @import Matrix
+#' @param basef joint base probabilistic forecasts assuming independence
 #' @param real dhts object holding observed series
 #' @param lambda penalty terms of cost, default is 1.
-#' @param optimized 
-#' @return r*q transformation matrix
+#' @param optimized indicating whether optimized. i.e., only moving probabilities to nearest coherent points.
+#' @tag multiple-levels
+#' @return r*q transformation matrix with class `rec_mat` 
 allreconcile.train <- function(basef, 
                                real,
                                lambda = 1,
                                optimized=TRUE) {
-  
-  # basef: T * q
-  library(Matrix)
   stopifnot(is(real, "dhts"))
+  stopifnot(is(basef, "jdist-ind"))
   real_dummy <- cons_realDummy(real)
   stopifnot(dim(basef)[1] == dim(real_dummy)[1])
   
-  getVIndexs <- function(distance){
-    Avec <- matrix(0, r, q)
-    indicators <- list()
-    for (i in 1:q){
-      if (min(distance[,i]) > 0){
-        Avec[which(distance[,i]==min(distance[,i])), i] = 1
-      }
-    }
-    for (i in 1:r){
-      indicators[[i]] <- which(Avec[i, ] == 1)
-    }
-    indicators
-  }
-  construct_D <- function(pi_hat, indicators){
-    D_mat <- 0
-    for (time in 1:time_window){
-      Ds <- lapply(indicators, function(indicator){
-        matrix(pi_hat[time, indicator], nrow=1)
-      })
-      D_mat <- D_mat + real_dummy[time,,drop=FALSE] %*% bdiag(Ds)
-    }
-    D_mat
-  }
-  construct_E <- function(distance, indicators){
-    n <- sum(sapply(indicators, function(x){length(x)}))
-    E <- NULL
-    for (j in 1:dim(distance)[2]){
-      if (min(distance[, j]) == 0) next;
-      E_jRow <- matrix(0, ncol=n)
-      currentVar = 0
-      for (i in 1:length(indicators)) {
-        E_jRow[which(indicators[[i]] == j) + currentVar] = 1
-        currentVar = currentVar + length(indicators[[i]])
-      }
-      E <- rbind(E, E_jRow)
-    }
-    E
-  }
-  construct_res <- function(distance, solution, indicators){
-    res <- replace(distance, distance==0, 1)
-    res <- replace(res, distance>0, 0)
-    currentVar = 1
-    for (i in 1:length(indicators)){
-      res[i, indicators[[i]]] = solution[currentVar: (currentVar + length(indicators[[i]]) - 1)]
-      currentVar = currentVar + length(indicators[[i]])
-    }
-    res
-  }
+  cdomain <- real$domain$coherent_domain
+  idomain <- real$domain$incoherent_domain
   
-  r <- dim(real_dummy)[2]
-  q <- dim(basef)[2]
+  r <- dim(cdomain)[1]
+  q <- dim(idomain)[1]
   time_window <- dim(real_dummy)[1]
-  costs <- cal_costeMatrix(real$domain$incoherent_domain, 
-                           real$domain$coherent_domain)
+  costs <- cal_costeMatrix(idomain, cdomain)
+  
   vec_c <- matrix(t(costs), nrow = 1)
+  
   if (optimized){
     indicators <- getVIndexs(costs)
     Dmat <- 2 * construct_Q(r, basef, indicators)
-    D <- construct_D(basef, indicators)
+    D <- construct_D(basef, indicators, real_dummy)
     E <- construct_E(costs, indicators)
     n_eq <- dim(E)[1]
     n_var <- dim(E)[2]
@@ -111,47 +66,14 @@ allreconcile.train <- function(basef,
   }
 
   solution <- quadprog::solve.QP(Dmat, dvec, Amat, bvec, meq = n_eq, factorized = FALSE)$solution
-  # check the result in the optimization function equals to the result of matrix form.
-  test.equalres <- function(){
-    getVIndexs2 <- function(distance){
-      Avec <- matrix(0, r, q)
-      indicators <- list()
-      for (i in 1:q){
-        Avec[which(distance[,i]==min(distance[,i])), i] = 1
-      }
-      for (i in 1:r){
-        indicators[[i]] <- which(Avec[i, ] == 1)
-      }
-      indicators
-    }
-    indicators2 <- getVIndexs2(costs)
-    Dmat2 <-2 * construct_Q(r, basef, indicators2)
-    dvec2 <- t(as.matrix(2 * construct_D(basef, indicators2)))
-    tmp_sol <- solution + 2
-    Amat <- construct_res(costs, tmp_sol, indicators)
-    vec_A <- matrix(t(Amat), nrow=1)[1,]
-    vec_A <- vec_A[vec_A > 0]
-    vec_A[vec_A > 1.5] = vec_A[vec_A>1.5] - 2
-    total_opt = (-t(dvec2) %*% vec_A + 1/2 * t(vec_A) %*% Dmat2 %*% vec_A + time_window)/time_window
-    Ahat <- construct_res(costs, solution, indicators)
-    res <- sum((t(Ahat %*% t(basef)) - real_dummy)^2)/time_window
-    cat("Optimized matrix form:", as.numeric(total_opt), "\n")
-    cat("scalar form:", as.numeric(res), "\n")
-  }
-  # test.equalres()
   solution[solution<1e-10] = 0
   if (optimized){
     Ahat <- construct_res(costs, solution, indicators)
   }else{
     Ahat <- t(matrix(solution, q, r))
   }
-  # test if best
-  Ahat2 <- construct_res(costs, rnorm(length(solution)), indicators)
-  Ahat2 <- apply(Ahat2, 2, function(x){abs(x)/sum(abs(x))})
-  sc1 <- brier_score(t(Ahat2 %*% t(basef)), real)
-  sc2 <- brier_score(t(Ahat %*% t(basef)), real)
-  cat(length(solution), "," , sc1, ",", sc2, ",", sep = "")
-  structure(apply(Ahat, 2, function(x){x/sum(x)}), class="rec_mat")
+  structure(list(A=apply(Ahat, 2, function(x){x/sum(x)}),
+                 domain=real$domain), class="rec_mat")
 }
 
 
@@ -162,12 +84,13 @@ allreconcile.train <- function(basef,
 #' @param lambda penality
 #' @param optimized boolean indicating if optimization 
 #' @param step_wise boolean indicating if reconciliation step wisely.
+#' @tag single-level
 #' @return sw_res object or rec_mat object
 #' @export
 reconcile_train <- function(basef, real, 
                             lambda=1, optimized=TRUE, step_wise=TRUE){
   if (!step_wise) {
-    basef <- marginal2Joint(basef)
+    basef <- marginal2Joint(basef, real$domain$incoherent_domain)
     return(allreconcile.train(basef, real, lambda=lambda, 
                               optimized = optimized))
   } else {
@@ -177,6 +100,13 @@ reconcile_train <- function(basef, real,
 
 #' function to step-sisely reconcile base forecasts
 #' 
+#' @param basef basef forecasts
+#' @param real dhts
+#' @param lambda penalty
+#' @param optimized if optimization
+#' @return sw_res object holding reconciliation matrix of each step
+#' @export
+#' @tag single-level
 stepwise_reconcile.train <- function(basef, real, 
                                lambda=1,
                                optimized=TRUE){
@@ -193,20 +123,28 @@ stepwise_reconcile.train <- function(basef, real,
   
   for (i in 1:(m-1)){
     bf_left <- basef[[i+1]]
-    bf_right <- marginal2Sum(basef[(i+2):n], domain = domain[, (i+1):m])
+    if (i == m-1){
+      rdomain <- domain[, (i+1):m, drop=FALSE]
+      bf_right <- basef[[n]]
+    } else {
+      rdomain <- cons_domain(domain[, (i+1):m], rbind(rep(1, m-i), diag(m-i)), 
+                             node_names = c(paste0('s', i+2, '-', m+1), colnames(real$domain$coherent_domain)[(i+2):(m+1)]))
+      bf_right <- marginal2Sum(basef[(i+1):n], domain = rdomain)
+    }
     if (is.null(bf_total)) bf_total <- basef[[i]]
     hierarchy_domain <- cbind(domain[,i], rowSums(domain[,(i+1):m, drop=FALSE]))
     # input for reconciliation of this step
-    basef_i <- marginal2Joint(list(bf_total, bf_left, bf_right))
+    
     real_i <- dhts(cbind(real$bts[,i], rowSums(real$bts[,(i+1):m,drop=FALSE])), 
-                   twolevelhierarchy(2),
+                   rbind(rep(1,2), diag(2)),
                    hierarchy_domain)
-    Ahat <- list(A=allreconcile.train(basef_i, real_i, lambda=lambda, optimized = optimized),
-                 leftdomain=hierarchy_domain[,1],
-                 rightdomain=domain[,(i+1):m])
-    cat(brier_score(marginal2Joint(list(bf_left, bf_right)), real_i), '\n', sep = "")
+    basef_i <- marginal2Joint(list(bf_total, bf_left, bf_right), real_i$domain$incoherent_domain)
+    modeli <- allreconcile.train(basef_i, real_i, lambda=lambda, optimized = optimized)
+    Ahat <- list(A=modeli,
+                 domain=real_i$domain,
+                 rdomain=rdomain)
     As[[i]] <- Ahat
-    bf_total <- Joint2Marginal(t(Ahat$A %*% t(basef_i)), real_i$domain$coherent_domain, 3)
+    bf_total <- Joint2Marginal(reconcile(modeli, list(bf_total, bf_left, bf_right)), real_i$domain$coherent_domain, 3)
   }
   structure(As, class = 'sw_res')
 }
@@ -233,6 +171,7 @@ reconcile.default <- function(x, ...){
 #' @param basef listing containing base probabilistic forecasts for each series
 #' @export
 reconcile.sw_res <- function(x, basef){
+  stopifnot(is(x, 'sw_res'))
   n <- length(x)
   bf_total <- NULL
   ans <- list()
@@ -240,21 +179,20 @@ reconcile.sw_res <- function(x, basef){
     if (is.null(bf_total)) {
       bf_total <- basef[[i]]
     } else {
-      bf_total <- Joint2Marginal(reconciledi, subtreedomain, 3) 
+      bf_total <- Joint2Marginal(structure(reconciledi, class="jdist-rec"), subtreedomain$coherent_domain, 3) 
     }
-    if(!is.null(dim(x[[i]]$rightdomain))){
-      right_domain <- x[[i]]$rightdomain
-    } else {
-      right_domain <- matrix(x[[i]]$rightdomain, ncol=1)
-    }
-    subtreedomain = cons_domain(cbind(x[[i]]$leftdomain, rowSums(right_domain)),
-                                twolevelhierarchy(2))
+    subtreedomain = x[[i]]$domain
     bf_left <- basef[[i+1]]
-    bf_right <- marginal2Sum(basef[(i+2):length(basef)], x[[i]]$rightdomain)
-    reconciledi <- t(x[[i]]$A %*% t(marginal2Joint(list(bf_total, bf_left, bf_right))))
+    if (i == n){
+      bf_right <- basef[[length(basef)]]
+    }else{
+      bf_right <- marginal2Sum(basef[(i+1):length(basef)], x[[i]]$rdomain)
+    }
+    
+    reconciledi <- reconcile(x[[i]]$A, list(bf_total, bf_left, bf_right))
     ans[[i]] <- list(dist=reconciledi, domain=subtreedomain)
   }
-  Step2Joint(ans)$dist
+  structure(Step2Joint(ans)$dist, class="jdist-rec")
 }
 
 
@@ -262,9 +200,12 @@ reconcile.sw_res <- function(x, basef){
 #' 
 #' @param x rec_mat object
 #' @param basef listing containing base probabilistic forecasts for each series
+#' @param domain domain of 
+#' @return reconciled 
 #' @export
 reconcile.rec_mat <- function(x, basef){
-  
+  basef <- marginal2Joint(basef, x$domain$incoherent_domain)
+  structure(t(x$A %*% t(basef)), class="jdist-rec")
 }
 
 # function to construct Q matrix used in optimization
@@ -294,7 +235,7 @@ construct_Q <- function(r, basef, indicators=NULL) {
 #' @import Matrix
 topdown.train <- function(real){
   stopifnot(is(real, "dhts"))
-  coherent_domain <- data.frame(real$domain$coherent_domain)
+  coherent_domain <- data.frame(unclass(real$domain$coherent_domain))
   q <- dim(coherent_domain)[1]
   a <- dim(coherent_domain)[2]
   y <- real$bts
@@ -307,19 +248,11 @@ topdown.train <- function(real){
       }
     }
   }
-  # tmp <- data.frame(y) %>% group_by(across()) %>% count()
-  # for (i in 1:q){
-  #   for (j in 1:q){
-  #     if (all(tmp[i, 1:(a-1)] == coherent_domain[j, 2:a])){
-  #       concurrence[i] <- tmp$n[i]
-  #     }
-  #   }
-  # }
-  data.frame(total=coherent_domain$X1, concurrence) %>%
+  data.frame(total=coherent_domain$s1, concurrence) %>%
     group_by(total) %>%
     mutate(freq = sum(concurrence), prob = concurrence / freq) %>%
     pull(prob) %>%
-    split(coherent_domain$X1) %>%
+    split(coherent_domain$s1) %>%
     bdiag() %>% as.matrix() %>%
     structure(class = "topdown")
 }
@@ -331,31 +264,32 @@ topdown.train <- function(real){
 #' @export
 reconcile.topdown <- function(x, basef){
   total_f <- basef[[1]]
-  t(x %*% t(total_f))
+  structure(t(x %*% t(total_f)), class='jdist-td')
 }
 
 #' function to stepwise update the joint distribution and joint domain.
 #'
-#' @param ans list containing joint distribution of all sub trees. 
+#' @param ans list containing joint distribution of all sub trees.
+#' @return reconciled joint distribution  
 Step2Joint <- function(ans){
   library(dplyr)
   # function to update domain
   update_domain <- function(l, r){
-    l <- data.frame(l)
-    r <- data.frame(r)
+    l <- data.frame(unclass(l))
+    r <- data.frame(unclass(r))
     colnames(l)[dim(l)[2]] <- "key"
     colnames(r)[1] <- "key"
     ans <- right_join(r, l, by="key")
     ans <- ans %>% select(-c("key")) %>% 
       select(c(3:dim(.)[2], 1:2))
     colnames(ans) <- 1:dim(ans)[2]
-    ans
+    structure(as.matrix(ans), class="coherent_domain")
   }
   
   # function to update joint distribution
   update_jointDist <- function(ldist, rdist, ld, rd){
-    ld <- data.frame(ld)
-    rd <- data.frame(rd)
+    ld <- data.frame(unclass(ld))
+    rd <- data.frame(unclass(rd))
     colnames(ld)[dim(ld)[2]] <- "key"
     colnames(rd)[1] <- "key"
     time_window <- dim(ldist)[1]
@@ -369,21 +303,22 @@ Step2Joint <- function(ans){
         pull(prob) %>%
         rbind(new_dist, .)
     }
-    new_dist
+    structure(as.matrix(new_dist), class='jdist-rec')
   }
   
   joint_dist <- ans[[1]]$dist
-  joint_domain <- ans[[1]]$domain
+  joint_domain <- ans[[1]]$domain$coherent_domain
   for (i in 1:(length(ans) - 1)){
     # fl: reconciled forecasts in the left hierarchy (as right node)
     fl <- Joint2Marginal(joint_dist, joint_domain, dim(joint_domain)[2])
     # fr: reconciled forecasts in the right hierarchy (as total)
-    fr <- Joint2Marginal(ans[[i+1]]$dist, ans[[i+1]]$domain, 1)
+    rd <- ans[[i+1]]$domain$coherent_domain
+    fr <- Joint2Marginal(ans[[i+1]]$dist, rd, 1)
     adj_dist <- (fl + fr)/2
     joint_l <- coherentadj(joint_dist, adj_dist, joint_domain, dim(joint_domain)[2])
-    joint_r <- coherentadj(ans[[i+1]]$dist, adj_dist, ans[[i+1]]$domain, 1)
-    joint_dist <- update_jointDist(joint_dist, joint_r, joint_domain, ans[[i+1]]$domain)
-    joint_domain <- update_domain(joint_domain, ans[[i+1]]$domain)
+    joint_r <- coherentadj(ans[[i+1]]$dist, adj_dist, rd, 1)
+    joint_dist <- update_jointDist(joint_dist, joint_r, joint_domain, rd)
+    joint_domain <- update_domain(joint_domain, rd)
   }
   rownames(joint_dist) <- NULL
   colnames(joint_dist) <- 1:dim(joint_dist)[2]
@@ -417,5 +352,67 @@ coherentadj <- function(x, target, domain, which){
 addProbJitter <- function(x){
   add_x <- matrix(runif(length(x), -min(abs(x))/100, min(abs(x))/100), NROW(x), NCOL(x))
   t(apply((x + add_x), 1, function(x){abs(x)/sum(abs(x))}))
+}
+
+
+
+#' utility functions
+#' @tag multiple-levels
+getVIndexs <- function(distance){
+  r <- dim(distance)[1]
+  q <- dim(distance)[2]
+  Avec <- matrix(0, r, q)
+  indicators <- list()
+  for (i in 1:q){
+    if (min(distance[,i]) > 0){
+      Avec[which(distance[,i]==min(distance[,i])), i] = 1
+    }
+  }
+  for (i in 1:r){
+    indicators[[i]] <- which(Avec[i, ] == 1)
+  }
+  indicators
+}
+
+#' utility functions
+construct_D <- function(jdist, indicators, y){
+  D_mat <- 0
+  time_window <- dim(y)[1]
+  for (time in 1:time_window){
+    Ds <- lapply(indicators, function(indicator){
+      matrix(jdist[time, indicator], nrow=1)
+    })
+    D_mat <- D_mat + y[time,,drop=FALSE] %*% bdiag(Ds)
+  }
+  D_mat
+}
+
+#' utility functions
+construct_E <- function(distance, indicators){
+  n <- sum(sapply(indicators, function(x){length(x)}))
+  E <- NULL
+  for (j in 1:dim(distance)[2]){
+    if (min(distance[, j]) == 0) next;
+    E_jRow <- matrix(0, ncol=n)
+    currentVar = 0
+    for (i in 1:length(indicators)) {
+      E_jRow[which(indicators[[i]] == j) + currentVar] = 1
+      currentVar = currentVar + length(indicators[[i]])
+    }
+    E <- rbind(E, E_jRow)
+  }
+  E
+}
+
+#' utility functions
+construct_res <- function(distance, solution, indicators){
+  res <- replace(distance, distance==0, 1)
+  res <- replace(res, distance>0, 0)
+  currentVar = 1
+  for (i in 1:length(indicators)){
+    res[i, indicators[[i]]] = solution[currentVar: (currentVar + length(indicators[[i]]) - 1)]
+    currentVar = currentVar + length(indicators[[i]])
+  }
+  res
 }
 

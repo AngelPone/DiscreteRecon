@@ -6,6 +6,18 @@
 \usage{
 stepwise_reconcile.train(basef, real, lambda = 1, optimized = TRUE)
 }
+\arguments{
+\item{basef}{basef forecasts}
+
+\item{real}{dhts}
+
+\item{lambda}{penalty}
+
+\item{optimized}{if optimization}
+}
+\value{
+sw_res object holding reconciliation matrix of each step
+}
 \description{
 function to step-sisely reconcile base forecasts
 }

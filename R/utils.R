@@ -121,7 +121,7 @@ Joint2Marginal <- function(x, domain, which=NULL){
   n <- dim(domain)[2]
   m <- attr(domain, "m")
   time_window <- dim(x)[1]
-  if (!("jdist-bu" %in% class(x) | "jdist-rec" %in% class(x))){
+  if (!("jdist-bu" %in% class(x) | "jdist-rec" %in% class(x) | "jdist-ind" %in% class(x))){
     stop("only bottom-up joint distritbution or reconciled distribution is supported!")
   }
   
