@@ -5,18 +5,23 @@ test_that("domain", {
   domain <- matrix(c(0, 1, 0, 1), 2)
   s_mat <- matrix(c(1, 1, 0, 1, 0, 1), 3)
   a <- dhts(bts, s_mat, domain)
-  t1 <- a$domain$coherent_domain
-  t2 <- a$domain$incoherent_domain
+  t1 <- a$meta$coherent_domain
+  t2 <- a$meta$incoherent_domain
   
   expect_is(t1, "coherent_domain")
   expect_is(t2, "incoherent_domain")
-  expect_equal(dim(t1), c(4,3))
+  expect_equal(dim(t1), c(4, 3))
   expect_equal(dim(t2), c(12, 3))
   expect_equal(t1[,1], t1[,2] + t1[,3])
   expect_equal(colnames(t1), paste0("s", 1:3))
   expect_equal(colnames(t2), paste0("s", 1:3))
   expect_equal(max(t1), 2)
   expect_equal(min(t1), 0)
+  
+  expect_equal(colnames(a$bts), paste0('s', 2:3))
+  allts <- aggdhts(a)
+  expect_equal(dim(allts), c(50, 3))
+  expect_equal(colnames(allts), paste0("s", 1:3))
 })
 
 
@@ -26,8 +31,8 @@ test_that("domain", {
   domain <- rbind(rep(0, 7), rep(1, 7))
   s_mat <- rbind(rep(1,7), diag(7))
   a <- dhts(bts, s_mat, domain)
-  t1 <- a$domain$coherent_domain
-  t2 <- a$domain$incoherent_domain
+  t1 <- a$meta$coherent_domain
+  t2 <- a$meta$incoherent_domain
   expect_is(t1, "coherent_domain")
   expect_is(t2, "incoherent_domain")
   expect_equal(dim(t1), c(128, 8))
@@ -50,8 +55,8 @@ test_that("domain", {
     sample(x[1]:x[2], size=100, replace = TRUE)
   })
   a <- dhts(bts, s_mat, domain)
-  t1 <- a$domain$coherent_domain
-  t2 <- a$domain$incoherent_domain
+  t1 <- a$meta$coherent_domain
+  t2 <- a$meta$incoherent_domain
   
   dslower <- apply(domain, 2, function(x){(x[2] - x[1] + 1)})
   dsranges <- (s_mat %*% t(domain))[,2] - (s_mat %*% t(domain))[,1] + 1
@@ -79,8 +84,8 @@ test_that("multiple levels example", {
   dslower <- apply(domain, 2, function(x){(x[2] - x[1] + 1)})
   dsranges <- (s_mat %*% t(domain))[,2] - (s_mat %*% t(domain))[,1] + 1
   a <- dhts(bts, s_mat, domain)
-  t1 <- a$domain$coherent_domain
-  t2 <- a$domain$incoherent_domain
+  t1 <- a$meta$coherent_domain
+  t2 <- a$meta$incoherent_domain
   
   expect_equal(dim(t1), c(prod(dslower), 10))
   expect_equal(dim(t2), as.numeric(c(prod(dsranges), 10)))
@@ -91,7 +96,5 @@ test_that("multiple levels example", {
   expect_equal(colnames(t2), paste0("s", 1:10))
   expect_equal(max(t1), as.numeric(rowSums(domain)[2]))
   expect_equal(min(t1), as.numeric(min(domain)))
-  expect_equal(attr(t1, 'm'), 7)
-  expect_equal(attr(t2, 'm'), 7)
 })
 

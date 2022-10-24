@@ -7,12 +7,12 @@ prepare_test_data1 <- function(){
   dhts(bts, s_mat, domain)
 }
 
-prepare_test_data2 <- function(x){
+prepare_test_data2 <- function(x, size=2000){
   upper <- rep(0, x)
   domain <- rbind(upper, upper + sample(1:2, x, replace = TRUE))
   s_mat <- rbind(rep(1,x), diag(x))
   bts <- apply(domain, 2, function(x){
-    sample(x[1]:x[2], size=100, replace = TRUE)
+    sample(x[1]:x[2], size=size, replace = TRUE)
   })
   dhts(bts, s_mat, domain)
 }
@@ -27,12 +27,12 @@ prepare_test_data3 <- function(){
 }
 
 prepare_basef <- function(dhts){
-  dsupper <- (dhts$s_mat %*% t(dhts$domain$domain_bts))[,2]
-  dslower <- (dhts$s_mat %*% t(dhts$domain$domain_bts))[,1]
+  dsupper <- (dhts$meta$s_mat %*% t(dhts$meta$domain_bts))[,2]
+  dslower <- (dhts$meta$s_mat %*% t(dhts$meta$domain_bts))[,1]
   ds <- dsupper - dslower + 1
   probf <- 1:length(ds) %>%
     lapply(function(x){
-      a <- matrix(rnorm(100*ds[x]), 100) %>% abs() %>% 
+      a <- matrix(rnorm(NROW(dhts$bts)*ds[x]), NROW(dhts$bts)) %>% abs() %>% 
         apply(1, function(x){x/sum(x)}) %>% t()
       colnames(a) <- dslower[x] : dsupper[x]
       a
@@ -41,16 +41,16 @@ prepare_basef <- function(dhts){
 }
 
 prepare_recdist <- function(dhts){
-  domain <- dhts$domain$coherent_domain
+  domain <- dhts$meta$coherent_domain
   r <- dim(domain)[1]
   structure(t(apply(matrix(rnorm(100*r), 100), 1, function(x){abs(x)/sum(abs(x))})),
-            class = "jdist-rec")
+            class = c("coherent", "jdist", "rec"))
 }
 
 test_that("prepare base forecasts", {
   dts <- prepare_test_data2(4)
-  dsupper <- (dts$s_mat %*% t(dts$domain$domain_bts))[,2]
-  dslower <- (dts$s_mat %*% t(dts$domain$domain_bts))[,1]
+  dsupper <- (dts$meta$s_mat %*% t(dts$meta$domain_bts))[,2]
+  dslower <- (dts$meta$s_mat %*% t(dts$meta$domain_bts))[,1]
   ds <- as.numeric(dsupper - dslower + 1)
   basef <- prepare_basef(dts)
   expect_equal(length(basef), 5)
@@ -63,7 +63,7 @@ test_that("prepare base forecasts", {
 
 test_that("prepare base forecasts for multiple levels", {
   dts <- prepare_test_data3()
-  ds <- (dts$s_mat %*% t(dts$domain$domain_bts))[,2] - (dts$s_mat %*% t(dts$domain$domain_bts))[,1] + 1
+  ds <- (dts$meta$s_mat %*% t(dts$meta$domain_bts))[,2] - (dts$meta$s_mat %*% t(dts$meta$domain_bts))[,1] + 1
   basef <- prepare_basef(dts)
   expect_equal(length(basef), 7)
   for (i in 1:7){

@@ -20,37 +20,75 @@ dhts <- function(bts, s_mat, domain_bts, node_names=NULL){
   stopifnot(dim(bts)[2] == dim(s_mat)[2],
             dim(domain_bts)[2] == dim(s_mat)[2],
             dim(domain_bts)[1] == 2)
-  for (i in 1:dim(s_mat)[2]){
-    stopifnot(bts[,i] >= domain_bts[1,i],
-              bts[,i] <= domain_bts[2,i])
+  for (i in NCOL(s_mat)){
+    stopifnot(all(bts[,i] >= domain_bts[1,i]),
+              all(bts[,i] <= domain_bts[2,i]))
   }
   
-  if (!is.ts(bts)){
-    bts <- as.ts(bts)
+  stopifnot("matrix" %in% class(bts))
+  if (is.null(node_names)){
+    if (is.null(colnames(bts))){
+      node_names <- paste0('s', 1:NROW(s_mat))
+      colnames(bts) <- node_names[(NROW(s_mat) - NCOL(s_mat) + 1): NROW(s_mat)]
+    } else {
+      node_names <- c(paste0('s', 1:(NROW(s_mat) - NCOL(s_mat) + 1)), colnames(bts))
+    }
+  } else {
+    stopifnot(length(node_names) == NROW(s_mat))
   }
   
-  domain <- list(
-    domain_bts = domain_bts,
-    incoherent_domain = cons_domain(domain_bts, s_mat, FALSE, node_names = node_names),
-    coherent_domain = cons_domain(domain_bts, s_mat, node_names = node_names))
   structure(
-    list(bts = bts, 
-         domain = domain, 
-         s_mat = s_mat),
+    list(bts = bts, meta=construct_meta(domain_bts, s_mat, node_names)),
     class = c("dhts")
   )
 }
+
+#' Construct metadata for a hierarchy.
+#' @param domain_bts domain of the bottom level series
+#' @param s_mat summing matrix
+#' @export
+construct_meta <- function(domain_bts, s_mat, node_names=NULL){
+  if (is.null(node_names)) 
+    node_names <- paste0('s', 1:NROW(s_mat))
+  idomain <- cons_domain(domain_bts, s_mat, FALSE, node_names = node_names)
+  cdomain <- cons_domain(domain_bts, s_mat, node_names = node_names)
+  
+  structure(list(domain_bts = domain_bts,
+                 s_mat = s_mat,
+                 incoherent_domain = idomain,
+                 coherent_domain = cdomain,
+                 coherent_flags = getCoherentFlag(idomain, cdomain, s_mat),
+                 quantities = c(r=NROW(idomain), q=NROW(cdomain),
+                                n=NROW(s_mat), m=NCOL(s_mat))),
+            class = "dhts_meta")
+}
+
+#' utility functions
+getCoherentFlag <- function(idomain, cdomain, smat){
+  output <- list()
+  coherent <- NULL
+  
+  n <- NROW(smat)
+  m <- NCOL(smat)
+  comp <- t(smat[1:(n-m),] %*% t(idomain[,(n-m+1):n]))
+  coherent <- which(rowSums(comp == idomain[,1:(n-m)]) == n-m)
+  list(coherent=coherent, incoherent=setdiff(1:dim(idomain)[1], coherent))
+}
+
 
 #' aggregate discrete hierarchical time series
 #' 
 #' function for aggregting discrete hierarchical time series.
 #' 
 #' @param dhts a dhts object
+#' @export
 aggdhts <- function(x){
   if (!is.dhts(x)) {
     stop("Argument must be a dhts object", call. = FALSE)
   }
-  t(x$s_mat %*% t(x$bts))
+  tmp <- x$bts %*% t(x$meta$s_mat)
+  colnames(tmp) <- colnames(x$meta$incoherent_domain)
+  tmp
 }
 
 
@@ -87,13 +125,11 @@ cons_domain <- function(domain_bts, s_mat, coherent = TRUE, node_names=NULL) {
     )
   }
   if (is.null(node_names)){
-    node_names <- paste0('s', 1:dim(s_mat)[1])
+    node_names <- paste0('s', 1:NROW(s_mat))
   }
-  allDomain <- as.matrix(allDomain)
+  allDomain <- unname(as.matrix(allDomain))
   colnames(allDomain) <- node_names
-  class(allDomain) <- 
-  structure(allDomain, class=ifelse(coherent, "coherent_domain", "incoherent_domain"),
-            m = dim(s_mat)[2])
+  structure(allDomain, class=ifelse(coherent, "coherent_domain", "incoherent_domain"))
 }
 
 #' @export

@@ -4,5 +4,5 @@
 *.Rproj.*
 .DS_Store
 .Rproj.user
-
+.idea
 tests/_snaps
