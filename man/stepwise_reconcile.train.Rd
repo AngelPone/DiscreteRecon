@@ -4,7 +4,7 @@
 \alias{stepwise_reconcile.train}
 \title{function to step-sisely reconcile base forecasts}
 \usage{
-stepwise_reconcile.train(basef, real, lambda = 1, optimized = TRUE)
+stepwise_reconcile.train(basef, real, lambda = 0, optimized = TRUE)
 }
 \arguments{
 \item{basef}{basef forecasts}

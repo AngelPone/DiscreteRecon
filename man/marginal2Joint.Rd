@@ -4,12 +4,15 @@
 \alias{marginal2Joint}
 \title{convert marginal distributions into joint distribution assuming independence}
 \usage{
-marginal2Joint(x, domain)
+marginal2Joint(x, meta, method)
 }
 \arguments{
 \item{x}{list of distributions of all series}
 
-\item{domain}{domain of hierarchy, if coherent, only bottom series are used (bottom-up approach).}
+\item{method}{bu for bottom-up, produce coherent joint distribution; 
+ind for independent, producing incoherent base joint distribution.}
+
+\item{obj}{dhts object}
 }
 \value{
 joint distribution matrix

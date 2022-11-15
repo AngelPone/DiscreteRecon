@@ -2,6 +2,7 @@
 #' 
 #' Method for reconciling base probabilistic forecasts 
 #' @import Matrix
+#' @import CVXR
 #' @param basef incoherent joint base probabilistic forecasts
 #' @param real dhts object holding observed series
 #' @param lambda penalty terms of cost, default is 1.
@@ -27,44 +28,29 @@ allreconcile.train <- function(basef,
   time_window <- NROW(real_dummy)
   costs <- cal_costeMatrix(real$meta)
   
-  vec_c <- as.vector(t(costs))
-  
   if (optimized){
-    lambda <- 0
     indicators <- getVIndexs(costs)
-    Dmat <- 2 * construct_Q(r, basef, indicators)
+    Dmat <- construct_Q(r, basef, indicators)
     vec_c <- do.call(c, lapply(1:r, function(i){costs[i,indicators[[i]]]}))
-    dvec <- 2 * construct_D(basef, indicators, real_dummy) - 
-      time_window * lambda * vec_c
-    
-    E_lst <- construct_E(costs, indicators)
-    
-    Amat <- t(E_lst$E)
-    bvec <- E_lst$b0
-    n_eq <- q
+    dvec <- - 2 * construct_D(basef, indicators, real_dummy)
+    n <- sum(sapply(indicators, length))
+    A1 <- construct_E(costs, indicators)
   } else {
-    Dmat <- 2 * construct_Q(r, basef)  
-    dvec <- 2 * construct_D(basef, NULL, real_dummy) - time_window * lambda * vec_c
-    
-    A1 <- matrix(replicate(r, diag(q)), q)
-    b1 <- rep(1, q)
-    
-    A2 <- diag(r * q)
-    b2 <- rep(0, r * q)
-    
-    A3 <- -diag(r * q)
-    b3 <- rep(-1, r * q)
-    Amat <- t(rbind(A1, A2, A3))
-    bvec <- c(b1, b2, b3)
-    n_eq <- q
+    n <- r * q
+    A1 <- do.call(cbind, replicate(r, Diagonal(q)))
+    Dmat <- construct_Q(r, basef)  
+    vec_c <- as.vector(t(costs))
+    dvec <- time_window * lambda * vec_c - 2 * construct_D(basef, NULL, real_dummy)
   }
-
-  solution <- quadprog::solve.QP(Dmat, dvec, Amat, bvec, meq = n_eq)$solution
-  solution[solution<1e-10] = 0
+  vs <- Variable(n)
+  constraints <- list(A1 %*% vs == 1, vs >= 0, vs <= 1)
+  objective <- Minimize(t(dvec) %*% vs + quad_form(vs, Dmat))
+  problem <- Problem(objective, constraints)
+  solution <- solve(problem, solver="OSQP")
   if (optimized){
-    Ahat <- construct_res(costs, solution, indicators)
+    Ahat <- construct_res(costs, solution$getValue(vs), indicators)
   }else{
-    Ahat <- matrix(solution, r, q, byrow = TRUE)
+    Ahat <- matrix(solution$getValue(vs), r, q, byrow = TRUE)
   }
   structure(apply(Ahat, 2, function(x){x/sum(x)}), class="rec_mat")
 }
@@ -342,11 +328,11 @@ construct_D <- function(jdist, indicators, y){
   r <- NCOL(y)
   if (is.null(indicators)){
     tmp <- do.call(c, lapply(1:r, function(i){
-      matrix(colSums(jdist[y[,i]==1,,drop=FALSE]), nrow = 1)
+      colSums(jdist[y[,i]==1,,drop=FALSE])
     }))
   } else {
     tmp <- do.call(c, lapply(1:r, function(i){
-      matrix(colSums(jdist[y[,i]==1,,drop=FALSE])[indicators[[i]]], nrow = 1)
+      colSums(jdist[y[,i]==1,,drop=FALSE])[indicators[[i]]]
     }))
   }
   tmp
@@ -361,21 +347,16 @@ construct_E <- function(distance, indicators){
   for (col in unique(tmp1)){
     A1[col, tmp2[which(tmp1 == col)]] = 1
   }
-  
-  A2 <- diag(length(tmp1))
-  A3 <- -diag(length(tmp1))
-  
-  b1 <- rep(1, length(unique(tmp1)))
-  b2 <- rep(0, length(tmp1))
-  b3 <- rep(-1, length(tmp1))
-  
-  list(E=rbind(A1, A2, A3), b0=c(b1,b2,b3))
+  as(A1, "sparseMatrix")
 }
 
 #' utility functions
 construct_res <- function(distance, solution, indicators){
   
   res <- matrix(0, NROW(distance), NCOL(distance))
+  # for (g in seq_along(vs)){
+  #   res[g, indicators[[g]]] = as.numeric(solution$getValue(vs[[g]]))
+  # }
   start <- 0
   for (i in 1:length(indicators)){
     res[i, indicators[[i]]] <- solution[(start+1):(length(indicators[[i]]) + start)]

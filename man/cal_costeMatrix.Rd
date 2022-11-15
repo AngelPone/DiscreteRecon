@@ -5,12 +5,10 @@
 \title{cost of moving probabilities
 function to calculate distance between coherent point}
 \usage{
-cal_costeMatrix(incoherent_domain, coherent_domain)
+cal_costeMatrix(meta)
 }
 \arguments{
-\item{incoherent_domain}{coherent domain}
-
-\item{coherent_domain}{incoherent domain}
+\item{meta}{metadata of dhts object}
 }
 \value{
 distance matrix

@@ -4,7 +4,7 @@
 \alias{construct_res}
 \title{utility functions}
 \usage{
-construct_res(distance, solution, indicators)
+construct_res(distance, solution, indicators, vs)
 }
 \description{
 utility functions

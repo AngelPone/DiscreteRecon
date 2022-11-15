@@ -119,8 +119,9 @@ Joint2Marginal <- function(x, meta, which=NULL){
     tmp <- sapply(nums, function(y){
       idx <- domain[,i] == y
       if(sum(idx) == 1) return(x[, idx])
-      else return(apply(x[, idx], 1, sum))
+      else return(apply(x[, idx, drop=FALSE], 1, sum))
     }, simplify = "array")
+    if (is.null(dim(tmp))) tmp <- matrix(tmp, 1)
     colnames(tmp) <- nums
     tmp
   })

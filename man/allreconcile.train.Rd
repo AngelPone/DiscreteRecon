@@ -4,10 +4,10 @@
 \alias{allreconcile.train}
 \title{reconcile base probabilistic forecasts}
 \usage{
-allreconcile.train(basef, real, lambda = 1, optimized = TRUE)
+allreconcile.train(basef, real, lambda = 0, optimized = TRUE)
 }
 \arguments{
-\item{basef}{joint base probabilistic forecasts assuming independence}
+\item{basef}{incoherent joint base probabilistic forecasts}
 
 \item{real}{dhts object holding observed series}
 

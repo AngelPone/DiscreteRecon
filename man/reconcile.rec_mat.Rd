@@ -4,7 +4,7 @@
 \alias{reconcile.rec_mat}
 \title{regular reconciliation}
 \usage{
-\method{reconcile}{rec_mat}(x, basef)
+\method{reconcile}{rec_mat}(x, basef, meta)
 }
 \arguments{
 \item{x}{rec_mat object}

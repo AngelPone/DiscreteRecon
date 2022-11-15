@@ -9,7 +9,7 @@ prepare_test_data1 <- function(){
 
 prepare_test_data2 <- function(x, size=2000){
   upper <- rep(0, x)
-  domain <- rbind(upper, upper + sample(1:2, x, replace = TRUE))
+  domain <- rbind(upper, upper + 2)
   s_mat <- rbind(rep(1,x), diag(x))
   bts <- apply(domain, 2, function(x){
     sample(x[1]:x[2], size=size, replace = TRUE)
@@ -47,27 +47,3 @@ prepare_recdist <- function(dhts){
             class = c("coherent", "jdist", "rec"))
 }
 
-test_that("prepare base forecasts", {
-  dts <- prepare_test_data2(4)
-  dsupper <- (dts$meta$s_mat %*% t(dts$meta$domain_bts))[,2]
-  dslower <- (dts$meta$s_mat %*% t(dts$meta$domain_bts))[,1]
-  ds <- as.numeric(dsupper - dslower + 1)
-  basef <- prepare_basef(dts)
-  expect_equal(length(basef), 5)
-  for (i in 1:5){
-    expect_equal(dim(basef[[i]]), as.numeric(c(100, ds[i])))
-    expect_vector(rowSums(basef[[i]]), 1)
-    expect_equal(as.numeric(colnames(basef[[i]])), dslower[i]:dsupper[i])
-  }
-})
-
-test_that("prepare base forecasts for multiple levels", {
-  dts <- prepare_test_data3()
-  ds <- (dts$meta$s_mat %*% t(dts$meta$domain_bts))[,2] - (dts$meta$s_mat %*% t(dts$meta$domain_bts))[,1] + 1
-  basef <- prepare_basef(dts)
-  expect_equal(length(basef), 7)
-  for (i in 1:7){
-    expect_equal(dim(basef[[i]]), as.numeric(c(100, ds[i])))
-    expect_vector(rowSums(basef[[i]]), 1)
-  }
-})

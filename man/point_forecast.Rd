@@ -4,12 +4,12 @@
 \alias{point_forecast}
 \title{Point forecast}
 \usage{
-point_forecast(dist, domain)
+point_forecast(dist, meta)
 }
 \arguments{
-\item{dist}{coherent distribution}
+\item{dist}{coherent distribution or basef}
 
-\item{domain}{coherent domain}
+\item{meta}{metadata}
 }
 \value{
 point forecasts of all series
