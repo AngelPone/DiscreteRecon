@@ -4,15 +4,12 @@
 \alias{marginal2Joint}
 \title{convert marginal distributions into joint distribution assuming independence}
 \usage{
-marginal2Joint(x, meta, method)
+marginal2Joint(x, hier, method = c("ind", "bu"))
 }
 \arguments{
 \item{x}{list of distributions of all series}
 
-\item{method}{bu for bottom-up, produce coherent joint distribution; 
-ind for independent, producing incoherent base joint distribution.}
-
-\item{obj}{dhts object}
+\item{hier}{dhts object}
 }
 \value{
 joint distribution matrix

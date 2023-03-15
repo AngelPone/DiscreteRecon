@@ -10,15 +10,18 @@
 #' @examples 
 #' # create a 3-nodes `dhier` object.
 #' s_mat <- matrix(c(1, 1, 0, 1, 0, 1), 3)
-#' domain <- matrix(c(1, 0, 1, 0), 2)
+#' domain <- matrix(c(0, 1, 0, 1), 2)
 #' dhier(s_mat, domain)
 #' @export
-dhier <- function(s_mat, domain){
+dhier <- function(s_mat, domain, node_names=NULL){
   stopifnot(NCOL(domain) == NCOL(s_mat),
             NROW(domain) == 2)
+  stopifnot(all(domain[1,] <= domain[2,]))
   
+  if (is.null(node_names)){
+    node_names <- paste0('s', 1:NROW(s_mat))  
+  }
   
-  node_names <- paste0('s', 1:NROW(s_mat))  
   idomain <- cons_domain(domain, s_mat, FALSE, node_names)
   cdomain <- cons_domain(domain, s_mat, TRUE, node_names)
   
@@ -36,10 +39,6 @@ dhier <- function(s_mat, domain){
 }
 
 
-#' print method of dhier 
-#' 
-#' @param x dhier obj
-#' @rdname dhier-class
 #' @export
 print.dhier <- function(x){
   cat("Hierarchy with series taking discrete values:\n")
@@ -47,7 +46,6 @@ print.dhier <- function(x){
       ", m=", unname(x$quantities['m']),
       ", r=", unname(x$quantities['r']),
       ", q=", unname(x$quantities['q']), "."))
-  invisible(x)
 }
 
 
@@ -64,9 +62,6 @@ getCoherentFlag <- function(idomain, cdomain, smat){
 }
 
 
-#' A function to check if a object is \code{dhier}.
-#' @rdname dhier-class
-#' @param dhier object
 #' @export
 is.dhier <- function(dhier){
   is.element("dhier", class(dhier))
@@ -98,14 +93,6 @@ cons_domain <- function(domain, s_mat, coherent, node_names) {
   allDomain <- unname(as.matrix(allDomain))
   colnames(allDomain) <- node_names
   structure(allDomain, class=ifelse(coherent, "coherent_domain", "incoherent_domain"))
-}
-
-is.coherent_domain <- function(x){
-  "coherent_domain" %in% class(x)
-}
-
-is.incoherent_domain <- function(x){
-  "incoherent_domain" %in% class(x)
 }
 
 

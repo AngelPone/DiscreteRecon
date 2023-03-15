@@ -4,7 +4,7 @@ prepare_test_data1 <- function(){
   bts <- matrix(sample(0:1, 200, replace=TRUE), ncol=2)
   domain <- matrix(c(0, 1, 0, 1), 2)
   s_mat <- matrix(c(1, 1, 0, 1, 0, 1), 3)
-  dhts(bts, s_mat, domain)
+  list(bts = bts, hier = dhier(s_mat, domain))
 }
 
 prepare_test_data2 <- function(x, size=2000){
@@ -14,7 +14,7 @@ prepare_test_data2 <- function(x, size=2000){
   bts <- apply(domain, 2, function(x){
     sample(x[1]:x[2], size=size, replace = TRUE)
   })
-  dhts(bts, s_mat, domain)
+  list(bts = bts, hier = dhier(s_mat, domain))
 }
 
 prepare_test_data3 <- function(){
@@ -23,17 +23,18 @@ prepare_test_data3 <- function(){
   bts <- apply(domain, 2, function(x){
     sample(x[1]:x[2], size=100, replace = TRUE)
   })
-  dhts(bts, s_mat, domain)
+  list(bts=bts, hier=dhier(s_mat, domain))
 }
 
 prepare_basef <- function(dhts){
-  dsupper <- (dhts$meta$s_mat %*% t(dhts$meta$domain_bts))[,2]
-  dslower <- (dhts$meta$s_mat %*% t(dhts$meta$domain_bts))[,1]
+  dsupper <- (dhts$hier$s_mat %*% t(dhts$hier$domain))[,2]
+  dslower <- (dhts$hier$s_mat %*% t(dhts$hier$domain))[,1]
   ds <- dsupper - dslower + 1
-  probf <- 1:length(ds) %>%
-    lapply(function(x){
-      a <- matrix(rnorm(NROW(dhts$bts)*ds[x]), NROW(dhts$bts)) %>% abs() %>% 
-        apply(1, function(x){x/sum(x)}) %>% t()
+  probf <-
+    lapply(1:length(ds), function(x){
+      a <- abs(matrix(rnorm(NROW(dhts$bts)*ds[x]), NROW(dhts$bts)))
+      a <- apply(a, 1, function(x){x/sum(x)})
+      a <- t(a)
       colnames(a) <- dslower[x] : dsupper[x]
       a
     })
@@ -41,9 +42,8 @@ prepare_basef <- function(dhts){
 }
 
 prepare_recdist <- function(dhts){
-  domain <- dhts$meta$coherent_domain
+  domain <- dhts$hier$coherent_domain
   r <- dim(domain)[1]
-  structure(t(apply(matrix(rnorm(100*r), 100), 1, function(x){abs(x)/sum(abs(x))})),
-            class = c("coherent", "jdist", "rec"))
+  t(apply(matrix(rnorm(100*r), 100), 1, function(x){abs(x)/sum(abs(x))}))
 }
 

@@ -4,14 +4,14 @@
 \alias{coherentadj}
 \title{function to adjust joint distribution given new marginal distribution}
 \usage{
-coherentadj(x, target, meta, which)
+coherentadj(x, target, hier, which)
 }
 \arguments{
 \item{x}{original joint distribution}
 
 \item{target}{new marginal distribution}
 
-\item{meta}{metadata of the hierarchy}
+\item{hier}{metadata of the hierarchy}
 
 \item{which}{integer indicating which column in the domain 
 the marginal distribution refers to.}

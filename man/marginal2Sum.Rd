@@ -4,14 +4,14 @@
 \alias{marginal2Sum}
 \title{function to compute distribution of sum of bottom series assuming independence}
 \usage{
-marginal2Sum(x, meta, which = 1)
+marginal2Sum(x, hier, which = NULL)
 }
 \arguments{
 \item{x}{list of distributions of some series}
 
-\item{which}{indicating which upper nodes, default NULL means all upper series.}
+\item{hier}{dhier obj}
 
-\item{obj}{dhts obj}
+\item{which}{indicating which upper nodes, default NULL means all upper series.}
 }
 \value{
 distribution of upper series.

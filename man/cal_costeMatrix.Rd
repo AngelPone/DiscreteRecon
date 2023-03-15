@@ -5,10 +5,10 @@
 \title{cost of moving probabilities
 function to calculate distance between coherent point}
 \usage{
-cal_costeMatrix(meta)
+cal_costeMatrix(hier)
 }
 \arguments{
-\item{meta}{metadata of dhts object}
+\item{hier}{dhier object}
 }
 \value{
 distance matrix

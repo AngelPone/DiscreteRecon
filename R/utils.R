@@ -1,17 +1,13 @@
 #' function to transform observed bottom-level series into dummy series.
 #' 
-#' @import Matrix
-#' @param x dhts object
-#' @tag multiple-levels
+#' @param x time series
+#' @param hier dhier object
 #' @return dummy matrix
-cons_realDummy <- function(x) {
-  if (!is.dhts(x)) stop("Argument x should be a dhts object.")
-  coherent_domain <- x$meta$coherent_domain
-  series <- aggdhts(x)
-  r = NROW(coherent_domain)
-  dummy_mat <- as(matrix(0, dim(series)[1], r), "sparseMatrix")
+cons_realDummy <- function(x, hier) {
+  series <- x %*% t(hier$s_mat) 
+  dummy_mat <- spMatrix(NROW(series), hier$quantities['r'])
   for (i in 1:dim(series)[1]) {
-    dummy_mat[i, which(apply(coherent_domain, 1, function(x) {
+    dummy_mat[i, which(apply(hier$coherent_domain, 1, function(x) {
       all(x == series[i, ])
     }))] = 1
   }
@@ -21,12 +17,11 @@ cons_realDummy <- function(x) {
 #' cost of moving probabilities
 #‘
 #' function to calculate distance between coherent point
-#' @param meta metadata of dhts object
-#' @tag multiple-levels
+#' @param hier dhier object
 #' @return distance matrix
-cal_costeMatrix <- function(meta) {
-  cd <- meta$coherent_domain
-  id <- meta$incoherent_domain
+cal_costeMatrix <- function(hier) {
+  cd <- hier$coherent_domain
+  id <- hier$incoherent_domain
 
   distance = matrix(NA, nrow = NROW(cd), ncol = NROW(id))
   for (j in 1:NROW(cd)) {
@@ -41,29 +36,23 @@ cal_costeMatrix <- function(meta) {
 #' convert marginal distributions into joint distribution assuming independence
 #' 
 #' @param x list of distributions of all series
-#' @param obj dhts object
-#' @param method bu for bottom-up, produce coherent joint distribution; 
-#' ind for independent, producing incoherent base joint distribution.
-#' @tag multiple-levels
+#' @param hier dhts object
 #' @return joint distribution matrix
-#' @export 
-marginal2Joint <- function(x, meta, method){
-  stopifnot(is.list(x), length(x) == NROW(meta$s_mat))
-  stopifnot(method %in% c("bu", "ind"))
+marginal2Joint <- function(x, hier, method = c("ind", "bu")){
   
-  n <- NROW(meta$s_mat)
-  m <- NCOL(meta$s_mat)
+  domain <- hier$incoherent_domain
+  method <- match.arg(method)
   
-  
-  domain <- meta$incoherent_domain
-  cls <- c("incoherent", "jdist")
-  if (method == "bu"){
+  if (method == "ind") {
+    domain <- hier$incoherent_domain
+  } else {
+    n <- NROW(hier$s_mat)
+    m <- NCOL(hier$s_mat)
     x <- x[(n-m+1):n]
-    domain <- meta$coherent_domain[, (n-m+1):n]
-    cls <- c("coherent", "jdist", "bu")
+    domain <- hier$coherent_domain[, (n-m+1):n]
   }
   
-  time_window <- dim(x[[1]])[1]
+  time_window <- NROW(x[[1]])
   res <- NULL
   for (j in 1:NROW(domain)){
     tmp <- 1
@@ -74,40 +63,35 @@ marginal2Joint <- function(x, meta, method){
     res <- cbind(res, tmp)
   }
 
-  structure(unname(res), class=cls)
+  unname(res)
 }
 
 #' function to compute distribution of sum of bottom series assuming independence
 #' 
 #' @param x list of distributions of some series
-#' @param obj dhts obj
+#' @param hier dhier obj
 #' @param which indicating which upper nodes, default NULL means all upper series.
 #' @return distribution of upper series.
-#' @tag 
-marginal2Sum <- function(x, meta, which = 1){
-  all_ts <- marginal2Joint(x, meta, method = "bu")
-  Joint2Marginal(all_ts, meta, which)
+marginal2Sum <- function(x, hier, which = NULL){
+  all_ts <- marginal2Joint(x, hier, method = "bu")
+  Joint2Marginal(all_ts, hier, which)
 }
 
 
 #' function to convert Joint distribution to marginal Distribution
 #' 
 #' @param x joint distribution
-#' @param obj dhts object
+#' @param hier dhier object
 #' @param which integer indicating which dimension (which column of domain), if
 #' NULL, return marginal distribution of all series.
-#' @tag multiple-levels
+#' @param coherent If the passed joint distribution coherent
 #' @return marginal distribution
-Joint2Marginal <- function(x, meta, which=NULL){
-  n <- NROW(meta$s_mat)
-  m <- NCOL(meta$s_mat)
+Joint2Marginal <- function(x, hier, which=NULL, coherent=TRUE){
+  n <- NROW(hier$s_mat)
+  m <- NCOL(hier$s_mat)
   time_window <- dim(x)[1]
-  if (!is_jdist(x)){
-    stop("x shoule be one kind of joint distribution")
-  }
-  
-  if (is_coherent(x)) domain <- meta$coherent_domain
-  else domain <- meta$incoherent_domain
+  if (coherent) domain <- hier$coherent_domain
+  else domain <- hier$incoherent_domain
   
   if (is.null(which)) which <- 1:n
   
@@ -127,21 +111,11 @@ Joint2Marginal <- function(x, meta, which=NULL){
   })
   
   if (length(which) == 1) return(output[[1]])
-  names(output) <- colnames(meta$coherent_domain)[which]
+  names(output) <- colnames(hier$coherent_domain)[which]
   output
 }
 
-is_jdist <- function(x){
-  "jdist" %in% class(x)
-}
-is_coherent <- function(x){
-  "coherent" %in% class(x)
-}
 
-is_coherentJdist <- function(x){
-  is_jdist(x) & is_jdist(x)
-}
-is_incoherentJdist <- function(x){
-  ("incoherent" %in% class(x)) & is_jdist(x)
-}
+
+
 

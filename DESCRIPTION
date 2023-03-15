@@ -8,7 +8,4 @@ License: `use_gpl3_license()`
 RoxygenNote: 7.2.0
 Description: Methods and tools for reconcling probabilistic forecasts for discrete
              hierarchical time series.
-Imports:
-  Matrix,
-  dplyr
 Encoding: UTF-8

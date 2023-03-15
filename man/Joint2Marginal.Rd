@@ -4,15 +4,17 @@
 \alias{Joint2Marginal}
 \title{function to convert Joint distribution to marginal Distribution}
 \usage{
-Joint2Marginal(x, meta, which = NULL)
+Joint2Marginal(x, hier, which = NULL, coherent = TRUE)
 }
 \arguments{
 \item{x}{joint distribution}
 
+\item{hier}{dhier object}
+
 \item{which}{integer indicating which dimension (which column of domain), if
 NULL, return marginal distribution of all series.}
 
-\item{obj}{dhts object}
+\item{coherent}{If the passed joint distribution coherent}
 }
 \value{
 marginal distribution

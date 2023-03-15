@@ -4,12 +4,14 @@
 \alias{brier_score}
 \title{Brier Score}
 \usage{
-brier_score(probf, y)
+brier_score(probf, y, hier)
 }
 \arguments{
 \item{probf}{joint probabilistic forecasts, T * n}
 
-\item{y}{dhts}
+\item{y}{observations}
+
+\item{hier}{dhier object}
 }
 \description{
 function to compute brier score given observations and probabilistic forecasts

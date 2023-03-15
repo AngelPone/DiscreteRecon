@@ -4,10 +4,12 @@
 \alias{point_metric}
 \title{Point metrics of each series}
 \usage{
-point_metric(dist, y, f)
+point_metric(dist, y, hier, f)
 }
 \arguments{
-\item{y}{dhts}
+\item{dist}{predictive distribution}
+
+\item{y}{observation}
 
 \item{f}{function to calculate metric}
 }

@@ -4,10 +4,12 @@
 \alias{cons_realDummy}
 \title{function to transform observed bottom-level series into dummy series.}
 \usage{
-cons_realDummy(x)
+cons_realDummy(x, hier)
 }
 \arguments{
-\item{x}{dhts object}
+\item{x}{time series}
+
+\item{hier}{dhier object}
 }
 \value{
 dummy matrix
