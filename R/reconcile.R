@@ -389,7 +389,7 @@ get_equal_idx <- function(ldf, row){
 #' utility function
 update_meta <- function(l, r){
   
-  new_domain <- cbind(l$domain[,1:(NCOL(l$domain_bts) - 1)], r$domain)
+  new_domain <- cbind(l$domain[,1:(NCOL(l$domain) - 1)], r$domain)
   dhier(rbind(rep(1, NCOL(new_domain)), diag(NCOL(new_domain))),
         new_domain,
         node_names = c(colnames(l$coherent_domain)[1:(NCOL(l$coherent_domain) - 1)],
