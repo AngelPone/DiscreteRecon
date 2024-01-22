@@ -430,7 +430,12 @@ td_train <- function(x, obs_train){
   }
   
   probs <- unsplit(lapply(split(concurrence, x$coherent_domain[,1]), 
-                          function(x){ x/sum(x) }),
+                          function(x){ 
+                            if (all(x == 0)) {
+                              x <- rep(1, length(x))
+                            }
+                            x/sum(x)
+                            }),
                    x$coherent_domain[,1])
   output <- Matrix::spMatrix(r, q)
   for (j in 1:r){
