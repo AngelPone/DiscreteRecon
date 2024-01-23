@@ -96,7 +96,7 @@ validate_bf <- function(x, hier){
 #' @return the reconciliation model
 #' @export
 dfr <- function(hier,
-                method=c("bu", "td", "dfr", "sdfr"),
+                method=c("bu", "td", "dfr", "sdfr", "emp"),
                 obs_train=NULL, 
                 bf_train=NULL,
                 lambda=0, 
@@ -111,7 +111,8 @@ dfr <- function(hier,
                    bu = bu_train(hier),
                    td = td_train(hier, obs_train),
                    dfr = fr_train(hier, bf_train, obs_train, lambda, optimized),
-                   sdfr = sfr_train(hier, bf_train, obs_train, lambda, optimized))
+                   sdfr = sfr_train(hier, bf_train, obs_train, lambda, optimized),
+                   emp = emp_train(hier, obs_train))
   structure(list(A = output, hier=hier, method=method), class = "dfr")
 }
 
@@ -187,10 +188,14 @@ print.dfr <- function(x){
 #'
 #' @param mdl trained reconciliation model
 #' @param new_bf base forecasts
+#' @param h forecast horizon, used when method == 'emp'
 #' @return reconciled forecasts
 #' @export
-reconcile <- function(mdl, new_bf){
+reconcile <- function(mdl, new_bf, h=1){
   stopifnot("dfr" %in% class(mdl))
+  if (mdl$method == "emp") {
+    return(matrix(mdl$A, nrow = h, ncol = length(mdl$A), byrow = TRUE))
+  }
   validate_bf(new_bf, mdl$hier)
   if (is.list(mdl$A)){
     reconcile_sdfr(mdl, new_bf)
@@ -396,7 +401,22 @@ update_meta <- function(l, r){
                        colnames(r$coherent_domain)[2:NCOL(r$coherent_domain)]))
 }
 
-
+#' function to train empirical distribution
+#' 
+#' @param x dhier object
+#' @return reconciled empirical distribution
+emp_train <- function(x, obs_train) {
+  counts <- numeric(nrow(x$coherent_domain))
+  for (i in 1:nrow(x$coherent_domain)) {
+    for (j in 1:nrow(obs_train)) {
+      if (all(x$coherent_domain[i, 2:NCOL(x$coherent_domain)] == obs_train[j, ])) {
+        counts[i] <- counts[i] + 1
+      }
+    }
+  }
+  probs <- counts / sum(counts)
+  probs
+}
 
 #' function to train bottom-up model
 #' 
